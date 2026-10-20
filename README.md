@@ -4,6 +4,83 @@ A learning and portfolio project: deterministic simulated market data, a Python
 reference engine, and a matching Verilog engine with UART packet transport.
 All orders and fills are simulated; this does not connect to an exchange.
 
+## React trading dashboard
+
+The local dashboard supports **Simulation** (Python reference decisions) and
+**FPGA Live** (physical UART replies checked against Python). Both use generated
+market data. The terminal includes price charts with buy/sell markers, decision
+history, position/risk limits, kill status, JSON export, COM-port selection,
+speed adjustment, and host round-trip metrics.
+
+Prerequisites: Python 3.10+ and Node.js 22.16+ with npm. No FPGA toolchain is
+required for simulation or an already programmed board.
+
+First-time setup in PowerShell:
+
+```powershell
+cd C:\Coding\fpga_stockmarketsimulation
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+cd frontend
+npm.cmd ci
+cd ..
+```
+
+Terminal 1, backend (one worker, no reload while using hardware):
+
+```powershell
+cd C:\Coding\fpga_stockmarketsimulation
+.\.venv\Scripts\python.exe -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
+```
+
+Terminal 2, frontend:
+
+```powershell
+cd C:\Coding\fpga_stockmarketsimulation\frontend
+npm.cmd run dev
+```
+
+Open **http://127.0.0.1:5173**. Select **Simulation**, then **Start run** first.
+Stop ends generation; each new simulation starts at position zero with seed 1.
+Adjust speed from 1 to 20 quotes/second. Export saves the last 240 captured quotes;
+the table displays the latest 12 matching its filter.
+
+For **FPGA Live**: program the current `nanoquant.fs`, select the board UART port
+(last verified: COM6), close other applications using that serial port, physically
+reset the board, and check the reset-confirmation box before starting. Every reply
+is validated against the existing protocol and Python reference. The backend keeps
+one request outstanding and preserves the 2 ms post-transaction pause.
+
+**Reset before every new physical run**, including after normal stop, kill,
+timeout, disconnect, or backend restart. Kill sends a kill-flagged quote and waits
+for a validated acknowledgment; it cannot clear the hardware latch. Errors stop
+the stream without resending a trade. Other browser tabs can observe but cannot
+take ownership. Closing the owning tab stops its run and releases the port after
+the current transaction finishes or times out.
+
+Host RTT includes UART/USB and host overhead. The reported one-cycle architecture
+implies approximately 37.04 ns at 27 MHz; this is an estimate, **not independently
+measured physical computation latency**. Simulation does not invent FPGA timings.
+
+Dashboard checks:
+
+```powershell
+# From the repository root:
+.\.venv\Scripts\python.exe -m pip install -r backend\requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest backend\tests -q
+# Activate OSS CAD Suite for zero skipped RTL tests:
+. .\tools\activate.ps1
+python -m unittest discover -s tests -v
+cd frontend
+npm.cmd test
+npm.cmd run build
+npm.cmd audit
+```
+
+See [dashboard architecture and protocol](docs/dashboard.md) for ownership,
+telemetry fields, and reset requirements. Keep this service on localhost;
+it has no public authentication layer.
+
 **Current milestone:** UART RX, packet validation, trading engine, UART reply TX,
 board wrapper, pin/clock constraints, and build flow are implemented.
 **15 tests pass**, including bit-level serial simulation and Python/RTL comparison.
