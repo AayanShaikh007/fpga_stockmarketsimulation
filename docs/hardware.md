@@ -89,7 +89,7 @@ and [device project](https://github.com/sipeed/TangNano-9K-example/blob/main/uar
 | Signal | FPGA package pin | Use |
 |---|---|---|
 | clk | 52 | 27 MHz board oscillator |
-| rst_n | 3 | Active-low reset input/button |
+| rst_n | 4 | Active-low reset input/button |
 | uart_tx | 17 | FPGA output to onboard USB/UART bridge |
 | uart_rx | 18 | FPGA input from onboard USB/UART bridge |
 
@@ -103,6 +103,27 @@ nextpnr; it does not read the Gowin SDC. Synchronizer register-to-register paths
 remain part of clock timing. No synchronous external data timing is claimed.
 
 ## Send quotes and compare actual board replies
+
+### Onboard action LEDs
+
+The six active-low LEDs use Sipeed's official LED example mapping (package pins
+10, 11, 13, 14, 15, 16 for LED indices 0 through 5):
+
+The LED outputs use LVCMOS18 to match the reset input's shared 1.8 V bank.
+
+| LED index | Meaning |
+|---|---|
+| 0 | Any completed engine decision, including a killed quote |
+| 1 | Buy: positive executed order |
+| 2 | Sell: negative executed order |
+| 3 | Hold: zero order while not killed, including risk-blocked orders |
+| 4 | Kill latched; stays on until reset |
+| 5 | Protocol/framing error or dropped busy request; stays on until reset |
+
+LEDs 0–3 stay lit for 200 ms after their event. Repeated events extend each LED's
+own pulse, so a fast demo can illuminate multiple decision LEDs at once. Malformed
+packets light the error LED without showing a completed decision. Reset clears
+all indicators. Rebuild and program the updated bitstream to enable the LEDs.
 
 On the PC connected to the programmed board:
 

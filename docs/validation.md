@@ -1,5 +1,28 @@
 # Validation — October 20, 2026
 
+## Physical UART check in the current checkout
+
+On October 20, 2026, the Tang Nano 9K connected on COM6 completed:
+
+```powershell
+. .\tools\activate.ps1
+python -m nanoquant.serial_demo --port COM6 --count 20 --seed 1 --kill-at-end
+```
+
+Run directory: `C:\Coding\fpga_stockmarketsimulation`. Exit status: 0.
+All 22 replies passed response header, CRC, sequence, order, position, kill-state,
+and architectural cycle-count checks against the Python reference. Sequences
+0–19 exercised buy, sell, and hold decisions; sequence 20 latched kill and
+sequence 21 confirmed it persisted. Final simulated position: -43.
+Host round-trip times ranged from 4.1930 to 4.6643 ms, including UART, USB,
+OS scheduling, and host processing; these are not isolated FPGA engine latency.
+The reported `engine_cycles=1` is an architectural constant, not a measured timer.
+Raw output is saved locally in `build/hardware-serial-check.log` (Git-ignored).
+Reset the board before running again because this check leaves kill latched.
+LED appearance, power cycling, and long-duration hardware operation were not
+checked by this run. The original development record below is historical and
+predates this successful physical UART check.
+
 All work and checks ran in `C:\Users\shaik\Coding\nanoquant`.
 
 ## Confirmed
