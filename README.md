@@ -81,6 +81,11 @@ See [dashboard architecture and protocol](docs/dashboard.md) for ownership,
 telemetry fields, and reset requirements. Keep this service on localhost;
 it has no public authentication layer.
 
+For the exact Python packages used during verification (including test tools),
+install `backend\requirements-lock.txt` instead of the unpinned development
+requirements. The frontend's exact dependency graph is in `package-lock.json`
+and is installed by `npm.cmd ci`.
+
 **Current milestone:** UART RX, packet validation, trading engine, UART reply TX,
 board wrapper, pin/clock constraints, and build flow are implemented.
 **15 tests pass**, including bit-level serial simulation and Python/RTL comparison.
@@ -237,8 +242,8 @@ setup issues. Build files and downloaded tools are not committed.
 
 ## Later stages and latency
 
-Broader board acceptance remains; next development is React telemetry and equivalent
-Python/C++/FPGA benchmarks. Measure engine latency separately from UART round-trip
+Broader board acceptance and a fresh dashboard-to-FPGA run remain, followed by
+equivalent Python/C++/FPGA benchmarks. Measure engine latency separately from UART round-trip
 latency. The reply's engine_cycles=1 is an architectural constant, not a timer.
 One 27 MHz cycle is about 37.04 ns; that is not an observed end-to-end measurement.
 The live host demo separately measures send-to-reply time, including UART, USB,

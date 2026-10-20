@@ -1,5 +1,32 @@
 # Validation — October 20, 2026
 
+## Local React dashboard milestone
+
+The dashboard service reuses the deterministic market feed and Python reference;
+the CLI and backend now share `nanoquant.transport.SerialSession` for validated
+stop-and-wait physical UART I/O. No RTL or constraints changed in this milestone.
+
+- Existing Python/HDL suite: **15 passed, zero skipped**.
+- Backend tests: **18 passed**, including simulated WebSocket streaming, packet
+  mapping, partial reads, CRC/sequence/reference failures, timeout without retry,
+  serial contention, USB disconnect, owner disconnect, in-flight stop, pending
+  kill acknowledgment, and physical-reset confirmation requirements.
+- Frontend tests: **3 passed** (bounded history, run separation, and timing provenance).
+- TypeScript and Vite production build: passed. Recharts is loaded separately.
+- `npm audit`: zero reported vulnerabilities after updating Vitest.
+- Real local-network smoke check through the Vite WebSocket proxy: 20 simulation
+  quotes matched the existing generator/reference, kill was acknowledged, run
+  ownership was released, and `/api/ports` listed COM6.
+- Backend tests emit a dependency deprecation warning about Starlette's current
+  httpx compatibility path; this did not affect the passing results.
+
+Browser visual/interaction QA could not be completed: the available browser
+tool's local-origin approval was declined. No alternate browser route was used.
+The new dashboard's physical UART integration is implemented and tested with
+injected serial sessions, but a fresh physical run has not been performed pending
+operator reset confirmation. The successful physical result below predates this
+shared-transport refactor and is not claimed as new dashboard hardware evidence.
+
 ## Physical UART check in the current checkout
 
 On October 20, 2026, the Tang Nano 9K connected on COM6 completed:

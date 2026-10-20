@@ -213,5 +213,52 @@ from this session.
 - Added six backend tests; all passed on the simulation implementation. Initial
   dependency audit reported vulnerable frontend tooling; remediation is in progress
   before final verification. Hardware transport is the next implementation step.
+
+## 2026-10-20 - Integrate serial transport and verify dashboard services
+
+- Extracted the existing CLI's stop-and-wait serial logic into
+  `nanoquant/transport.py`; the CLI and backend now both reuse `SerialSession`,
+  the existing encoder/decoder, and the reference model. Serial opens are exclusive.
+- Live transactions send once, read a complete reply with a two-second timeout,
+  validate protocol/sequence/reference/cycles, and preserve the 2 ms pause outside
+  the host RTT measurement. Errors invalidate the session; nothing is resent.
+- Live runs require a selected port and explicit operator confirmation of physical
+  reset. All ended live runs conservatively require reset again. Stops and owner
+  disconnects await in-flight work before releasing the serial port. Pending kill
+  requests complete before stop when communication is healthy; errors do not
+  pretend a kill acknowledgment was received.
+- UI controls label Simulation and FPGA Live separately. Added pending-kill status,
+  measured Python step timing, mode restoration for observers/reconnects, bounded
+  run-specific history, and lazy chart loading to reduce the initial JS bundle.
+- Added tests for timing provenance/history limits and serial error/race scenarios.
+  Final checks: 15 existing Python/HDL tests passed with no skips; 18 backend tests
+  passed; 3 frontend tests passed; TypeScript/Vite production build passed; npm
+  audit reported zero vulnerabilities. Backend tests produce one dependency
+  deprecation warning from Starlette's httpx compatibility path.
+- Started local FastAPI and Vite servers for protocol QA. A real WebSocket smoke
+  check through `ws://127.0.0.1:5173/ws` compared 20 simulation quotes to the existing
+  generator/model, confirmed kill acknowledgment and released ownership. HTTP
+  port discovery through the Vite proxy included COM6. This was simulation-only
+  service validation and did not transmit quotes to physical hardware.
+- Browser QA: the in-app browser was unavailable. The available Edge browser's
+  localhost origin gate then rejected preview because permission was declined.
+  No browser workaround or alternate visual automation was attempted. Visual,
+  responsive, and browser-interaction QA remain unverified.
+- Asked the operator to reset the FPGA and free COM6 before a fresh hardware run;
+  no reset confirmation has arrived during this implementation. The new live
+  dashboard path is mock-tested, not newly physically validated. The older
+  successful 22-response board test is explicitly distinguished in the docs.
+- Updated README with exact installation and two-terminal startup/test commands,
+  added `docs/dashboard.md` for the telemetry/ownership/reset contract, added a
+  tested Python dependency snapshot, and updated validation notes.
+- Made focused commits for the simulation backend, terminal UI, shared UART path,
+  dependency audit fix, kill acknowledgment, frontend telemetry/chart isolation,
+  serial race tests, operating docs, exclusive UART/reconnect behavior, and Python
+  dependency snapshot. All commits use actual current work; none are backdated.
+- An initial README patch failed because its old-context line no longer matched;
+  reapplied the intended documentation change using current context.
+- No FPGA RTL or constraints were modified. Generated builds, virtual environments,
+  downloaded tools, and node_modules remain ignored. Test servers are temporary
+  and are stopped during teardown. Final publication and HEAD checks follow.
 - The previous seven-commit publication completed successfully; local and remote
   main matched `cd7690c`, with a clean worktree before this dashboard task.
