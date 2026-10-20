@@ -5,3 +5,8 @@ build/
 impl/
 *.gprj.user
 .venv/
+node_modules/
+frontend/dist/
+.pytest_cache/
+*.tsbuildinfo
+.env
