@@ -198,3 +198,20 @@ from this session.
 - Added this log and `AGENTS.md` as the seventh commit group. The next action is
   to push that documentation commit and verify local/remote HEAD equality and a
   clean working tree. Dashboard source has not been created in this task.
+
+## 2026-10-20 - Dashboard simulation foundation
+
+- Inspected existing market generator, model, protocol, serial demo, project
+  instructions, and the user's Land-book reference. Used its compact card and
+  green chart styling in a dark responsive terminal, rather than a landing page.
+- Added a local FastAPI/WebSocket service with exclusive run ownership,
+  deterministic Python simulation, configurable speed, kill, stop, disconnect
+  cleanup, bounded observer queues, serial-port discovery, and origin checks.
+- Added the React/TypeScript/Vite frontend with Tailwind, Recharts, mode controls,
+  chart markers, exposure meter, decision filters, session JSON export, explicit
+  provenance, and separately labeled host measurements and architectural estimates.
+- Added six backend tests; all passed on the simulation implementation. Initial
+  dependency audit reported vulnerable frontend tooling; remediation is in progress
+  before final verification. Hardware transport is the next implementation step.
+- The previous seven-commit publication completed successfully; local and remote
+  main matched `cd7690c`, with a clean worktree before this dashboard task.
