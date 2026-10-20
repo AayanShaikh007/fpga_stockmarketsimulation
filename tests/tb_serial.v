@@ -7,7 +7,7 @@ module tb_serial;
     always #5 clk=~clk;
     wire tx,error_latched,killed;
     nanoquant_core #(.CLKS_PER_BIT(CPB),.TIMEOUT_CLKS(TIMEOUT)) dut(
-        clk,rst,rx,tx,error_latched,killed);
+        clk,rst,rx,tx,error_latched,killed, , );
     integer fd,status,cmd,value,i;
     reg [1023:0] path;
     task send_byte;

@@ -4,7 +4,9 @@ module nanoquant_core #(parameter CLKS_PER_BIT=234, TIMEOUT_CLKS=270000)(
     input wire clk, rst, uart_rx_pin,
     output wire uart_tx_pin,
     output reg error_latched,
-    output wire killed
+    output wire killed,
+    output wire action_valid,
+    output wire signed [31:0] action_order
 );
     wire [7:0] rx_data;
     wire rx_valid, framing_error, quote_valid, packet_error;
@@ -14,6 +16,8 @@ module nanoquant_core #(parameter CLKS_PER_BIT=234, TIMEOUT_CLKS=270000)(
     reg active;
     wire result_valid;
     wire signed [31:0] order, position;
+    assign action_valid=result_valid;
+    assign action_order=order;
     reg [31:0] accepted_sequence;
     uart_rx #(.CLKS_PER_BIT(CLKS_PER_BIT)) receiver(
         clk,rst,uart_rx_pin,rx_data,rx_valid,framing_error);
@@ -64,7 +68,7 @@ module nanoquant_core #(parameter CLKS_PER_BIT=234, TIMEOUT_CLKS=270000)(
                 2: if (tx_busy) send_state<=3;
                 3: if (!tx_busy) begin
                     if (tx_index==19) begin send_state<=0; active<=0; end
-                    else begin tx_index<=tx_index+1; send_state<=1; end
+                    else begin tx_index<=tx_index+5'd1; send_state<=1; end
                 end
             endcase
         end
