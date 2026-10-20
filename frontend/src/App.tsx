@@ -39,6 +39,7 @@ export default function App() {
     } catch { setPortError('Could not load ports. Check the backend connection.') }
   }
   useEffect(() => { if (connected) void refreshPorts() }, [connected])
+  useEffect(() => { setMode(status.mode) }, [status.run_id])
   useEffect(() => { if (running) { setMode(status.mode); setSpeed(status.speed) } }, [running, status.mode, status.speed])
   useEffect(() => { setReset(false) }, [status.run_id, status.state])
   function start() { send({ command: 'start', config: { mode, speed, seed: 1, port: mode === 'fpga' ? port : '', reset_confirmed: reset } }) }

@@ -30,7 +30,7 @@ class SerialSession:
     def __init__(self, port, *, serial_factory=serial.Serial):
         self.reference = Engine()
         self.failed = False
-        self.port = serial_factory(port, 115200, timeout=2, write_timeout=2)
+        self.port = serial_factory(port, 115200, timeout=2, write_timeout=2, exclusive=True)
         try:
             time.sleep(.1)
             self.port.reset_input_buffer()
