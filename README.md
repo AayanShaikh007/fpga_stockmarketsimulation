@@ -6,9 +6,10 @@ All orders and fills are simulated; this does not connect to an exchange.
 
 **Current milestone:** UART RX, packet validation, trading engine, UART reply TX,
 board wrapper, pin/clock constraints, and build flow are implemented.
-**14 tests pass**, including bit-level serial simulation and Python/RTL comparison.
+**15 tests pass**, including bit-level serial simulation and Python/RTL comparison.
 The complete design synthesizes, places, routes at 27 MHz, and produces a bitstream.
-**Physical board operation has not been tested.**
+**Physical UART validation passed:** 22 replies matched Python, including kill behavior.
+LED appearance, power cycling, and long-duration operation still need checking.
 
 ## Start with Python
 
@@ -21,6 +22,24 @@ python -m unittest discover -s tests -v
 
 The core has no third-party Python dependencies. HDL tests need Icarus Verilog
 (`iverilog` and `vvp`) on PATH; otherwise they are explicitly skipped.
+
+For this checkout on Windows, once OSS CAD Suite is extracted to
+`C:\tools\oss-cad-suite`, prepare and activate a project environment:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-hardware.txt
+. .\tools\activate.ps1
+python -m nanoquant --count 20 --seed 1
+python -m unittest discover -s tests -v
+python tools/build.py
+```
+
+Run the activation line in each new PowerShell terminal. For a different suite
+location, use `. .\tools\activate.ps1 -SuitePath 'D:\tools\oss-cad-suite'`.
+The helper changes PATH only for the current terminal. The build produces
+`build/nanoquant.fs`; programming and checking the physical board are separate
+steps described below.
 
 On the original development PC, Python uses this confirmed bundled executable:
 
@@ -88,7 +107,7 @@ python -m nanoquant.serial_demo --port COM5 --count 20 --seed 1 --kill-at-end
 ```
 
 Replace COM5 with the actual serial port. This hardware demo requires pyserial;
-its live operation remains unverified until the board test.
+its 22-response live check passed on COM6; see the validation record.
 
 ## Files and testing
 
@@ -125,12 +144,14 @@ UART wrapper intentionally accepts transactions much more slowly.
 
 [Validation record](docs/validation.md), October 20, 2026:
 
-- Python 3.12.14 and OSS CAD Suite 20261019: **14 passed, zero skipped**.
+- Python 3.12.14 and OSS CAD Suite 20261019: **14 passed, zero skipped** (original validation; current suite: 15 passed).
 - Synthesis structural check: zero problems. Bitstream packing: successful.
 - Post-route estimated maximum: 29.81 MHz, passing the 27 MHz target.
 - Resource estimate: 1,351/8,640 LUT4 sites (~15%), 490/6,480 DFF sites (~7%).
-- Unverified: actual board operation, hardware timings, USB/COM setup, live
-  pyserial exchange, Gowin IDE flow, and nondefault HDL strategy configurations.
+- Current checkout: 22 physical UART replies matched Python on COM6; Gowin
+  synthesis passed with no warnings or errors.
+- Unverified: physical LED appearance, power-cycle behavior, isolated engine
+  timing, long-duration operation, and nondefault HDL strategy configurations.
 
 The original first slice had 5 passing Python tests and one skipped HDL test.
 The portable toolchain now enables all HDL checks locally; the default system
@@ -139,9 +160,10 @@ setup issues. Build files and downloaded tools are not committed.
 
 ## Later stages and latency
 
-Physical board acceptance comes next, followed by React telemetry and equivalent
+Broader board acceptance remains; next development is React telemetry and equivalent
 Python/C++/FPGA benchmarks. Measure engine latency separately from UART round-trip
 latency. The reply's engine_cycles=1 is an architectural constant, not a timer.
 One 27 MHz cycle is about 37.04 ns; that is not an observed end-to-end measurement.
 The live host demo separately measures send-to-reply time, including UART, USB,
-OS scheduling, and reply processing. No physical latency results exist yet.
+OS scheduling, and reply processing. The physical UART check measured host round trips of 4.19-4.66 ms; isolated
+engine latency has not been measured.
