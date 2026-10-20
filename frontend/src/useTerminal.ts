@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { initialStatus } from './types'
 import type { Status, Telemetry } from './types'
+import { appendTelemetry } from './telemetry'
 
 export function useTerminal() {
   const [status, setStatus] = useState<Status>(initialStatus)
@@ -25,7 +26,7 @@ export function useTerminal() {
           setStatus(data)
           if (data.state === 'running' && !data.latest) setRows([])
         } else if (data.type === 'telemetry') {
-          setRows(previous => [...(previous[0]?.run_id === data.run_id ? previous : []), data].slice(-240))
+          setRows(previous => appendTelemetry(previous, data))
         } else if (data.type === 'command_error') setError(data.message)
       }
       ws.onclose = () => {
@@ -41,5 +42,6 @@ export function useTerminal() {
     setError(null)
     socket.current.send(JSON.stringify(message))
   }, [])
-  return { status, rows, connected, error: error || status.error, clientId, send }
+  const clearHistory = useCallback(() => setRows([]), [])
+  return { status, rows, connected, error: error || status.error, clientId, send, clearHistory }
 }
