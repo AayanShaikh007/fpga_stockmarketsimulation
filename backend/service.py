@@ -42,6 +42,7 @@ class Controller:
         return dict(type='status', state=self.state, mode=self.config.mode,
                     run_id=self.run_id, owner=self.owner, speed=self.config.speed,
                     port=self.config.port, error=self.error,
+                    kill_pending=self.kill_requested and self.state in ('running', 'stopping'),
                     reset_required=self.reset_required, latest=self.latest)
 
     def subscribe(self, client):
@@ -87,6 +88,7 @@ class Controller:
         self.require_owner(client)
         self.kill_requested = True
         self.wake.set()
+        self.emit(self.status())
 
     def speed(self, client, value):
         self.require_owner(client)
@@ -106,7 +108,7 @@ class Controller:
             if self.config.mode == 'fpga':
                 session = await asyncio.to_thread(self.session_factory, self.config.port)
             for quote in generate(count=2**32, seed=self.config.seed):
-                if self.stop_event.is_set():
+                if self.stop_event.is_set() and not self.kill_requested:
                     break
                 if self.kill_requested:
                     quote = replace(quote, kill=True)

@@ -9,7 +9,7 @@ export interface Telemetry {
 export interface Status {
   type: 'status'; state: string; mode: Mode; run_id: string | null
   owner: string | null; speed: number; port: string; error: string | null
-  reset_required: boolean; latest: Telemetry | null
+  reset_required: boolean; kill_pending: boolean; latest: Telemetry | null
 }
 export interface Port { device: string; description: string; hwid: string }
-export const initialStatus: Status = { type: 'status', state: 'idle', mode: 'simulation', run_id: null, owner: null, speed: 5, port: '', error: null, reset_required: false, latest: null }
+export const initialStatus: Status = { type: 'status', state: 'idle', mode: 'simulation', run_id: null, owner: null, speed: 5, port: '', error: null, reset_required: false, kill_pending: false, latest: null }
