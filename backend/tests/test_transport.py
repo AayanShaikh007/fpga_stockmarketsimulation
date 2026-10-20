@@ -151,3 +151,57 @@ def test_live_timeout_stops_and_releases_port_on_disconnect():
         assert session.closed
         assert session.calls == 1
     asyncio.run(scenario())
+
+
+def test_port_busy_and_physical_disconnect_surface_errors():
+    async def busy():
+        def unavailable(port):
+            raise OSError('Port is already open in another application')
+        controller = Controller(session_factory=unavailable)
+        await controller.start('owner', StartConfig(mode='fpga', port='test', reset_confirmed=True))
+        await controller.task
+        assert controller.state == 'error'
+        assert 'another application' in controller.error
+        assert controller.owner is None
+        assert controller.reset_required
+    asyncio.run(busy())
+    fake = FakeSerial()
+    with patch('nanoquant.transport.time.sleep'):
+        session = SerialSession('test', serial_factory=lambda *a, **k: fake)
+        with patch.object(fake, 'read', side_effect=OSError('USB disconnected')):
+            with pytest.raises(CommunicationError, match='USB disconnected'):
+                session.transact(Quote(0, 9990, 20))
+        assert len(fake.writes) == 1
+        session.close()
+
+
+def test_owner_disconnect_closes_live_port():
+    fake = FakeSerial()
+    async def scenario():
+        with patch('nanoquant.transport.time.sleep'):
+            controller = Controller(session_factory=lambda port: SerialSession(port, serial_factory=lambda *a, **k: fake))
+            queue = controller.subscribe('owner')
+            await controller.start('owner', StartConfig(mode='fpga', port='test', reset_confirmed=True))
+            while (await asyncio.wait_for(queue.get(), 2))['type'] != 'telemetry':
+                pass
+            await controller.disconnect('owner')
+            assert fake.closed
+            assert controller.state == 'stopped'
+            assert controller.reset_required
+    asyncio.run(scenario())
+
+
+def test_pending_kill_is_not_discarded_by_stop():
+    fake = FakeSerial()
+    async def scenario():
+        with patch('nanoquant.transport.time.sleep'):
+            controller = Controller(session_factory=lambda port: SerialSession(port, serial_factory=lambda *a, **k: fake))
+            controller.subscribe('owner')
+            await controller.start('owner', StartConfig(mode='fpga', port='test', reset_confirmed=True))
+            controller.kill('owner')
+            assert controller.status()['kill_pending']
+            await controller.stop('owner')
+            assert controller.latest['killed']
+            assert controller.state == 'killed'
+            assert len(fake.writes) == 1
+    asyncio.run(scenario())
