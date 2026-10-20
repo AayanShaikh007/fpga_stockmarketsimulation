@@ -43,7 +43,7 @@ module packet_rx #(parameter TIMEOUT_CLKS=270000)(
                     crc<=crc_byte(16'hffff,byte_data); // overlapping N N Q
                 end else begin index<=0; packet_error<=1; end
                 default: begin
-                    index<=index+1;
+                    index<=index+5'd1;
                     if (index<14) crc<=crc_byte(crc,byte_data);
                     case (index)
                         2: if (byte_data!=1) header_ok<=0;

@@ -28,8 +28,9 @@ module engine #(
             amount = {17'b0, quantity};
             if (amount > $signed({17'b0, MAX_ORDER})) amount = {17'b0, MAX_ORDER};
             if (amount > room) amount = room;
-            if (delta >= $signed({1'b0, THRESHOLD})) next_order = amount;
-            else if (delta <= -$signed({1'b0, THRESHOLD})) next_order = -amount;
+            // amount is capped by the 16-bit MAX_ORDER, so 32 bits retain it exactly.
+            if (delta >= $signed({1'b0, THRESHOLD})) next_order = $signed(amount[31:0]);
+            else if (delta <= -$signed({1'b0, THRESHOLD})) next_order = -$signed(amount[31:0]);
         end
     end
     always @(posedge clk) begin

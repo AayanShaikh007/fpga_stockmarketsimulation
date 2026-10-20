@@ -26,7 +26,7 @@ module uart_rx #(parameter CLKS_PER_BIT=234)(
                else begin
                    shift[bit_index]<=sync2; count<=CLKS_PER_BIT-1;
                    if (bit_index==7) state<=3;
-                   else bit_index<=bit_index+1;
+                   else bit_index<=bit_index+3'd1;
                end
             3: if (count!=0) count<=count-1;
                else begin

@@ -18,8 +18,8 @@ module uart_tx #(parameter CLKS_PER_BIT=234)(
         end else if (count!=0) count<=count-1;
         else if (bit_index==9) begin busy<=0; tx<=1; end
         else begin
-            bit_index<=bit_index+1;
-            tx<=frame[bit_index+1]; count<=CLKS_PER_BIT-1;
+            bit_index<=bit_index+4'd1;
+            tx<=frame[bit_index+4'd1]; count<=CLKS_PER_BIT-1;
         end
     end
 endmodule
