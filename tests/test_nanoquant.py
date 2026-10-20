@@ -106,9 +106,9 @@ class EquivalenceTests(unittest.TestCase):
             path.write_text(''.join(rows), encoding='ascii')
             executable = tmp / 'sim.vvp'
             subprocess.run(['iverilog', '-g2012', '-Wall', '-s', 'tb_engine', '-o', str(executable),
-                            str(ROOT / 'rtl/engine.v'), str(ROOT / 'rtl/tb_engine.v')], check=True)
+                            str(ROOT / 'rtl/engine.v'), str(ROOT / 'rtl/tb_engine.v')], check=True, timeout=30)
             run = subprocess.run(['vvp', str(executable), f'+VECTORS={path.as_posix()}'],
-                                 check=True, capture_output=True, text=True)
+                                 check=True, capture_output=True, text=True, timeout=60)
             actual = [tuple(map(int, line.split()[1:])) for line in run.stdout.splitlines()
                       if line.startswith('RESULT ')]
             self.assertEqual(len(actual), len(expected))

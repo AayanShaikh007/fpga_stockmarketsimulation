@@ -1,25 +1,28 @@
-# NanoQuant — Tang Nano 9K trading-engine portfolio project
+# NanoQuant — Tang Nano 9K FPGA trading-engine project
 
-First slice: a deterministic simulated feed, binary quote protocol, Python
-reference engine, and synthesizable Verilog engine with a comparison testbench.
-All fills are simulated immediately. This project does not place real orders.
+A learning and portfolio project: deterministic simulated market data, a Python
+reference engine, and a matching Verilog engine with UART packet transport.
+All orders and fills are simulated; this does not connect to an exchange.
 
-## Step 1: Understand and run the Python model
+**Current milestone:** UART RX, packet validation, trading engine, UART reply TX,
+board wrapper, pin/clock constraints, and build flow are implemented.
+**14 tests pass**, including bit-level serial simulation and Python/RTL comparison.
+The complete design synthesizes, places, routes at 27 MHz, and produces a bitstream.
+**Physical board operation has not been tested.**
 
-Run commands from this project directory (`C:\Users\shaik\Coding\nanoquant`).
-There are no third-party Python packages. Python 3.10+ is intended; Python 3.12.14
-is the version actually tested here.
+## Start with Python
 
-Standard Python installation, PowerShell or a Unix shell:
+From the project directory, with Python 3.10+ (3.12.14 actually tested):
 
-```text
-python --version
+```powershell
 python -m nanoquant --count 20 --seed 1
 python -m unittest discover -s tests -v
 ```
 
-On the current Windows machine `python` resolves to a Store shortcut. The
-following exact PowerShell commands use the confirmed bundled runtime:
+The core has no third-party Python dependencies. HDL tests need Icarus Verilog
+(`iverilog` and `vvp`) on PATH; otherwise they are explicitly skipped.
+
+On the original development PC, Python uses this confirmed bundled executable:
 
 ```powershell
 Set-Location 'C:\Users\shaik\Coding\nanoquant'
@@ -28,94 +31,117 @@ $pythonExe = 'C:\Users\shaik\.cache\codex-runtimes\codex-primary-runtime\depende
 & $pythonExe -m unittest discover -s tests -v
 ```
 
-The feed uses a 32-bit LCG: `state = (1664525*state + 1013904223) mod 2^32`.
-Each quote advances twice: price is `10000 + state%41 - 20`, then quantity is
-`state%41`. Same seed and count produce identical quotes. Seed 1 starts with
-price 9999 and quantity 7. No wall clock or network data is involved.
+The market generator uses a portable 32-bit LCG:
+`state = (1664525*state + 1013904223) mod 2^32`. Each quote advances twice:
+price is `10000 + state%41 - 20`, then quantity is `state%41`. Seed 1 begins with
+price 9999 and quantity 7. Same seed and count always reproduce the same inputs.
 
-The CSV demo prints the quote, signed order, resulting position, kill state,
-and encoded packet. See [the wire specification](docs/protocol.md).
+## Strategy and risk rules
 
-## Step 2: Understand the strategy and risk rules
+- Fair price: 10000 integer ticks; inclusive trading threshold: 5 ticks.
+- Buy at price <=9995; sell at price >=10005; otherwise hold.
+- Maximum order: 20 units. Position must remain between -100 and +100.
+- Quantity is clipped to the request, maximum order, and remaining position room.
+- Positive orders buy, negative orders sell. Fills occur immediately in this model.
+- Kill blocks the current quote and latches until reset; it does not liquidate.
+- Reset clears simulated position, order, and kill state.
 
-Default fair price is 10000 ticks; threshold is 5 ticks. Buy when price is at
-or below 9995, sell when at or above 10005, otherwise hold. Boundaries are
-inclusive. Quantity is clipped to the requested quantity, maximum order size
-(20), and remaining position capacity (position must stay between −100 and +100).
-Positive orders buy; negative orders sell. A position of 99 permits a buy of
-only 1. At +100 another buy is zero, while selling is permitted.
+One tick is an application-defined fixed unit; prices never use floating point.
+For example, at position +99, a requested buy of 20 becomes a buy of 1.
+The configured fair price is a teaching assumption, not an estimated market value
+or a claim of profitability.
 
-Kill blocks the current order and latches until reset. It preserves position.
-Reset clears position, order, and kill state. This is a teaching signal model,
-not a claim of profitability or a complete exchange execution/risk system.
+## UART and hardware: next hands-on step
 
-## Step 3: Compare the FPGA logic
-
-`rtl/engine.v` implements the same rules. Parameters must satisfy the Python
-configuration bounds: unsigned 32-bit fair and threshold, max order 1–65535,
-positive signed 32-bit position limit. Both models start at position zero.
-The comparison currently tests the default configuration.
-
-Interface: synchronous active-high reset; no backpressure. Each rising edge
-with `in_valid=1` accepts the decoded fields. After that edge, `out_valid=1`
-and order/position/killed represent that input. Reset takes priority. Invalid
-cycles lower `out_valid` and retain the other outputs; kill is ignored on them.
-The combinational decision path feeds one output register stage and supports
-one accepted quote per cycle. This is an architectural latency description;
-clock frequency and physical timing have not been measured.
-
-Install Icarus Verilog using its official distribution for your OS, then ensure
-both `iverilog` and `vvp` are on PATH. These version checks and simulation commands
-are provided but could not be executed on the supplied machine:
+Read [the step-by-step board guide](docs/hardware.md) for explanations, tool setup,
+Gowin project instructions, board pin sources, and the PC serial checker.
+Read [the packet specification](docs/protocol.md) for exact input/reply formats.
 
 ```text
-iverilog -V
-vvp -V
-python -m unittest discover -s tests -v
+PC -> UART RX -> validated quote -> engine -> reply formatter -> UART TX -> PC
 ```
 
-The comparison test generates 1,047 input cycles, compiles the RTL, runs it, and
-compares every output cycle to Python, including reset, idle cycles, zero/max
-quantities, threshold boundaries, full positions, price extremes, kill, and
-1,000 seeded quotes. With the confirmed bundled Python, run it directly via:
+Transport is 115200 baud 8N1 with a 27 MHz clock. Send **one quote at a time**,
+wait for its reply, then pause 2 ms. Malformed packets do not trade. Requests that
+arrive while a previous transaction is active are dropped; there is no queue.
+Sequence numbers are echoed but not deduplicated. Never retry automatically after
+a timeout; reset before restarting the demo to synchronize simulated positions.
+
+With an activated [OSS CAD Suite](https://github.com/YosysHQ/oss-cad-suite-build/releases)
+environment (both bin and lib on PATH):
 
 ```powershell
-& $pythonExe -m unittest discover -s tests -p test_nanoquant.py -v
+python -m unittest discover -s tests -v
+python tools/build.py
 ```
 
-Equivalent manual simulator invocation (the vector file must have five decimal
-fields per line: `reset valid price quantity kill`; the Python test creates it
-automatically in a temporary directory):
+Output: `build/nanoquant.fs`. The script does not program hardware. Alternatively,
+open `nanoquant.gprj` in Gowin IDE and set `nanoquant_top` as top. That IDE path is
+provided but unverified here; the open-source build is the confirmed flow.
 
-```text
-iverilog -g2012 -Wall -s tb_engine -o sim.vvp rtl/engine.v rtl/tb_engine.v
-vvp sim.vvp +VECTORS=vectors.txt
+After programming the correct board and pressing/releasing reset, on the board PC:
+
+```powershell
+python -m pip install -r requirements-hardware.txt
+python -m serial.tools.list_ports
+python -m nanoquant.serial_demo --port COM5 --count 20 --seed 1 --kill-at-end
 ```
 
-## Confirmed results and dependency status
+Replace COM5 with the actual serial port. This hardware demo requires pyserial;
+its live operation remains unverified until the board test.
 
-Validation on October 18, 2026: **5 tests passed, 1 skipped**. Python tests cover
-determinism, CRC known answer, packet round trips and corruption, explicit risk
-boundaries, kill/reset, validation, and invariants across 10,000 quotes. The CLI
-demo was also executed successfully. An initial incorrect golden-test quantity
-was corrected from 33 to 7 using the documented LCG states.
+## Files and testing
 
-Confirmed: bundled Python 3.12.14, Python standard library, Git.
-Missing from PATH: Icarus Verilog (`iverilog`, `vvp`), Verilator, Yosys.
-Unverified: RTL compilation/simulation, synthesis, Tang Nano 9K resource fit,
-pin assignments, clock constraints, programming tools, board behavior, and
-physical timing. No board-specific build or timing claim is made in this slice.
+| Path | Purpose |
+|---|---|
+| nanoquant/model.py | Python decision and risk reference |
+| nanoquant/feed.py | Repeatable simulated quotes |
+| nanoquant/protocol.py | Quote encoding/decoding and reply decoding |
+| nanoquant/serial_demo.py | Stop-and-wait PC-to-board checker |
+| rtl/engine.v | Synthesizable trading engine |
+| rtl/uart_rx.v, rtl/uart_tx.v | Serial byte reception/transmission |
+| rtl/packet_rx.v | Header, CRC, timeout and framing validation |
+| rtl/nanoquant_core.v | Parser/engine/reply integration |
+| rtl/nanoquant_top.v | Clock, startup reset and board ports |
+| rtl/tb_engine.v | Original engine simulation testbench |
+| tests/test_nanoquant.py | Python tests and 1,047-cycle engine equivalence |
+| tests/tb_serial.v, tests/test_serial.py | Serial bit-level tests and response checks |
+| constraints/ | Tang Nano 9K physical and clock constraints |
+| nanoquant.gprj | Gowin project template |
+| tools/build.py | Reproducible synthesis, routing and packing |
 
-## Next learning milestones
+Tests cover exact thresholds, size/position limits, kill/reset, 10,000-quote risk
+invariants, corrupted packets, invalid headers, partial timeout, dropped bytes,
+framing errors, false starts, reset mid-packet, busy requests, baud mismatch, and
+recovery. HDL equivalence uses the default strategy configuration.
 
-1. Run the Verilog comparison with Icarus; inspect waveforms and learn the
-   difference between combinational calculations and registered state.
-2. Add a UART receiver, full-frame validation, and board clock/reset integration.
-   Define recovery from lost bytes and duplicate sequences before hardware use.
-3. Add a React telemetry dashboard and a defined outbound telemetry protocol.
-4. Implement equivalent C++ logic and benchmark Python/C++/FPGA under identical
-   inputs and semantics. Measure **engine latency separately** from serialization,
-   UART round-trip latency, and host scheduling. At 115200 baud, an 8N1 16-byte
-   input alone consumes about 1.389 ms on the wire; this is arithmetic, not a
-   measured benchmark. Report clock rate, sample counts, distributions, and
-   measurement method; do not compare UART time with an in-process function call.
+The engine uses synchronous active-high reset, accepts a quote on a rising edge
+with in_valid, and registers order/position/killed for that quote. Reset takes
+priority; invalid cycles retain state and lower out_valid. It has one output
+register stage and supports one quote per cycle in isolation; this stop-and-wait
+UART wrapper intentionally accepts transactions much more slowly.
+
+## Confirmed results versus remaining checks
+
+[Validation record](docs/validation.md), October 20, 2026:
+
+- Python 3.12.14 and OSS CAD Suite 20261019: **14 passed, zero skipped**.
+- Synthesis structural check: zero problems. Bitstream packing: successful.
+- Post-route estimated maximum: 29.81 MHz, passing the 27 MHz target.
+- Resource estimate: 1,351/8,640 LUT4 sites (~15%), 490/6,480 DFF sites (~7%).
+- Unverified: actual board operation, hardware timings, USB/COM setup, live
+  pyserial exchange, Gowin IDE flow, and nondefault HDL strategy configurations.
+
+The original first slice had 5 passing Python tests and one skipped HDL test.
+The portable toolchain now enables all HDL checks locally; the default system
+PATH was not changed. See the validation record for exact tool versions and known
+setup issues. Build files and downloaded tools are not committed.
+
+## Later stages and latency
+
+Physical board acceptance comes next, followed by React telemetry and equivalent
+Python/C++/FPGA benchmarks. Measure engine latency separately from UART round-trip
+latency. The reply's engine_cycles=1 is an architectural constant, not a timer.
+One 27 MHz cycle is about 37.04 ns; that is not an observed end-to-end measurement.
+The live host demo separately measures send-to-reply time, including UART, USB,
+OS scheduling, and reply processing. No physical latency results exist yet.

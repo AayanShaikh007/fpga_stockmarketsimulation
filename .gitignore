@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 build/
 *.vcd
+impl/
+*.gprj.user
+.venv/

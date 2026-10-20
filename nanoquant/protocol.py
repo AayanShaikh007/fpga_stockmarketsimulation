@@ -3,6 +3,8 @@ from .model import Quote
 
 BODY = struct.Struct('<2sBBIIH')
 PACKET_SIZE = 16
+RESPONSE_BODY = struct.Struct('<2sBBIiiH')
+RESPONSE_SIZE = 20
 
 
 def crc16(data):
@@ -29,3 +31,15 @@ def decode(packet):
     if crc16(body) != struct.unpack('<H', packet[-2:])[0]:
         raise ValueError('packet CRC')
     return Quote(sequence, price, quantity, bool(flags))
+
+
+def decode_response(packet):
+    """Return (sequence, signed order, signed position, killed, engine_cycles)."""
+    if len(packet) != RESPONSE_SIZE:
+        raise ValueError('response length')
+    magic, version, flags, sequence, order, position, cycles = RESPONSE_BODY.unpack(packet[:-2])
+    if magic != b'NR' or version != 1 or flags & ~1:
+        raise ValueError('response header')
+    if crc16(packet[:-2]) != struct.unpack('<H', packet[-2:])[0]:
+        raise ValueError('response CRC')
+    return sequence, order, position, bool(flags), cycles

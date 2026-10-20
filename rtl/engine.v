@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 module engine #(
     parameter [31:0] FAIR = 10000,
     parameter [31:0] THRESHOLD = 5,

@@ -1,0 +1,2 @@
+# Optional: needed only for the PC-to-board serial demo.
+pyserial==3.5
