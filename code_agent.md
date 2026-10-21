@@ -432,3 +432,15 @@ from this session.
   the frontend update without restarting or modifying any active run.
 - Committing the component/styling, preference tests, and documentation/log updates
   in focused groups, then publishing to the established GitHub origin.
+
+## 2026-10-20 - Configure and verify local Alpaca credentials
+
+- User supplied Alpaca key ID in an image and secret in text and requested local
+  configuration. Confirmed `backend/.env` is Git-ignored before writing it.
+- Saved credentials only to that ignored file; did not copy values to frontend,
+  logs, documentation, or tracked files. Never printed credential values.
+- Verified a data-only HTTPS request for latest IEX trades returned HTTP 200 for
+  AAPL, NVDA, and TSLA. The running backend also reports configured=true.
+- No brokerage order/account endpoint was called, no dashboard run was started,
+  and no physical FPGA packets were sent. Market-data authentication is now
+  verified; live-stream/historical acceptance is separate from this setup check.
