@@ -6,6 +6,8 @@ import { averageHostMs } from './telemetry'
 import DataControls from './DataControls'
 import PaperPanel from './PaperPanel'
 import PerformancePanel from './PerformancePanel'
+import Onboarding from './Onboarding'
+import { rememberGuide, shouldShowGuide } from './onboardingContent'
 const MarketChart = lazy(() => import('./MarketChart'))
 
 const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`
@@ -25,6 +27,8 @@ export default function App() {
   const [reset, setReset] = useState(false)
   const [filter, setFilter] = useState('ALL')
   const [help, setHelp] = useState(false)
+  const [guideOpen,setGuideOpen] = useState(shouldShowGuide)
+  function dismissGuide() { rememberGuide(); setGuideOpen(false) }
   const running = status.state === 'running' || status.state === 'stopping'
   const owned = status.owner === clientId
   const currentMode = running ? status.mode : mode
@@ -56,6 +60,7 @@ export default function App() {
     const a = document.createElement('a'); a.href = url; a.download = `nanoquant-${latest?.run_id ?? 'session'}.json`; a.click(); URL.revokeObjectURL(url)
   }
   return <div className="app-shell">
+    <Onboarding open={guideOpen} onDismiss={dismissGuide}/>
     <aside className="sidebar">
       <a href="#overview" className="brand"><span className="brand-mark">N</span><span>NanoQuant<span className="brand-tag">TRADING SYSTEMS</span></span></a>
       <div className="workspace-label">WORKSPACE <span>01</span></div>
@@ -68,7 +73,7 @@ export default function App() {
       <div className="sidebar-bottom"><span className="pill subtle"><span className="dot"/> Local workspace</span><p>Deterministic by design.<br/>Observable at every step.</p><button className="nav-item" onClick={() => setHelp(!help)}><CircleHelp size={17}/> How it works <ArrowUpRight size={15}/></button><div className="version"><span className="avatar">NQ</span><div>Research environment<small>v0.1 · Simulated orders only</small></div></div></div>
     </aside>
     <div className="main-shell" id="overview">
-      <header className="topbar"><div className="breadcrumb">Workspace <ChevronRight size={13}/><span>Trading terminal</span></div><div className="flex items-center gap-4"><span className={`connection ${connected ? 'online' : ''}`}><span className="dot"/>{connected ? 'Backend connected' : 'Backend offline'}</span><button className="icon-button" aria-label="Show system help" onClick={() => setHelp(!help)}><CircleHelp size={18}/></button></div></header>
+      <header className="topbar"><div className="breadcrumb">Workspace <ChevronRight size={13}/><span>Trading terminal</span></div><div className="flex items-center gap-4"><span className={`connection ${connected ? 'online' : ''}`}><span className="dot"/>{connected ? 'Backend connected' : 'Backend offline'}</span><button className="button secondary intro-trigger" onClick={() => setGuideOpen(true)}><CircleHelp size={14}/> Introduction</button><button className="icon-button" aria-label="Show system help" onClick={() => setHelp(!help)}><CircleHelp size={18}/></button></div></header>
       <main>
         <div className="page-heading"><div><div className="eyebrow">YOUR ENGINE. IN REAL TIME.</div><h1>Trading terminal<span className="title-dot">.</span></h1><p>A clear view of every quote, decision, and microsecond.</p></div><button className="button secondary" disabled={!rows.length} onClick={exportData}><Download size={15}/> Export session</button></div>
         {help && <div className="notice">Market data source and execution engine are independent. Choose generated prices, real Alpaca IEX trade prints, or a replay. Python engine computes locally; FPGA Live validates physical board decisions. Stock prices map to basis-point ticks around the first sample; one stock and portfolio per run. Stop pauses generation; kill latches trading off. Physical reset is required before every FPGA run. No exchange or real money is connected.</div>}
