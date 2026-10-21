@@ -29,6 +29,8 @@ class AlpacaPaper:
         self.pending_id = None
         self.pending_client_id = None
         self.last_order = None
+        self.max_order=20
+        self.position_limit=100
         self.snapshot = None
         self.journal = journal or Path(__file__).parent / 'data' / 'paper-orders.jsonl'
 
@@ -57,8 +59,8 @@ class AlpacaPaper:
         qty = Decimal(str((position or {}).get('qty','0')))
         if account.get('status') != 'ACTIVE' or account.get('trading_blocked') or account.get('account_blocked'):
             raise BrokerError('Alpaca PAPER account is not active for trading.')
-        if qty < 0 or qty > 100:
-            raise BrokerError('Selected paper holding is short or exceeds 100 shares. Resolve it on Alpaca before running.')
+        if qty < 0 or qty > self.position_limit:
+            raise BrokerError('Selected paper holding is short or exceeds the strategy holding limit. Resolve it on Alpaca before running.')
         self.snapshot = {'environment':'alpaca_paper','cash':float(account['cash']),
                          'equity':float(account['equity']), 'buying_power':float(account['buying_power']),
                          'symbol':symbol,'position':float(qty),
@@ -121,8 +123,8 @@ class AlpacaPaper:
         state = await self.account(symbol)
         if signed_order == 0 or abort():
             return state
-        if abs(signed_order)>20:
-            raise BrokerError('Paper order exceeds the 20-share limit.')
+        if abs(signed_order)>self.max_order:
+            raise BrokerError('Paper order exceeds the strategy order limit.')
         clock = await self.request('GET','clock')
         if not clock.get('is_open'):
             raise BrokerError('Market closed; no paper order submitted.')
@@ -132,7 +134,7 @@ class AlpacaPaper:
         if limit <= 0:
             raise BrokerError('Invalid paper limit price.')
         holdings = int(state['position'])
-        room = max(0,int(Decimal(100)-Decimal(str(state['position']))))
+        room = max(0,int(Decimal(self.position_limit)-Decimal(str(state['position']))))
         quantity = min(abs(signed_order), room, max(0,int(Decimal(str(state['cash']))/limit))) if buy else min(abs(signed_order),holdings)
         if not quantity:
             self.last_order = {'status':'skipped','symbol':symbol,'reason':'Cash or long-only holding limit','filled_qty':'0'}

@@ -163,7 +163,7 @@ class Controller:
         mapper = Normalizer()
         if self.config.source == 'generated':
             mapper.anchor = Decimal(100)
-        portfolio = PaperPortfolio(fee_bps=self.config.fee_bps)
+        portfolio = PaperPortfolio(fee_bps=self.config.fee_bps,position_limit=self.strategy_spec.position_limit)
         session = None
         broker = None
         source = self.samples()
@@ -173,6 +173,8 @@ class Controller:
         try:
             if self.config.execution == 'alpaca_paper':
                 broker = AlpacaPaper()
+                broker.max_order=self.strategy_spec.max_order
+                broker.position_limit=self.strategy_spec.position_limit
                 await broker.preflight(self.config.symbol)
                 self.broker_snapshot = broker.snapshot
                 self.emit(self.status())

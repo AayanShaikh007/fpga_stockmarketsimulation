@@ -31,7 +31,7 @@ def backtest(store,request):
     spec=Strategy(**frozen['spec'])
     engine=StrategyEngine(spec)
     mapper=Normalizer()
-    ledger=PaperPortfolio(fee_bps=request.fee_bps)
+    ledger=PaperPortfolio(fee_bps=request.fee_bps,position_limit=spec.position_limit)
     pending=0
     curve=[]
     trades=[]

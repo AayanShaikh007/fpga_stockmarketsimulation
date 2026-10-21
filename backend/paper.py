@@ -9,7 +9,8 @@ def money(value):
 
 
 class PaperPortfolio:
-    def __init__(self, starting_cash='10000', fee_bps=1):
+    def __init__(self, starting_cash='10000', fee_bps=1, position_limit=None):
+        self.position_limit=position_limit
         self.initial = Decimal(str(starting_cash))
         self.cash = self.initial
         self.fee_rate = Decimal(str(fee_bps)) / 10000
@@ -28,6 +29,8 @@ class PaperPortfolio:
         quantity = abs(order)
         if order > 0:
             quantity = min(quantity, int(self.cash / (price * (1+self.fee_rate))))
+            if self.position_limit is not None:
+                quantity=min(quantity,max(0,self.position_limit-self.position))
         elif order < 0:
             quantity = min(quantity, self.position)
         fee = (price * quantity * self.fee_rate).quantize(CENT, rounding=ROUND_HALF_UP)
