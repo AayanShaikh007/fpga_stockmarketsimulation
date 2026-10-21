@@ -69,7 +69,7 @@ class Controller:
                     replay_id=self.config.replay_id, performance=self.performance.snapshot(),
                     execution=self.config.execution, broker=self.broker_snapshot,
                     strategy_snapshot_id=self.config.strategy_snapshot_id,
-                    strategy={'spec':self.strategy_spec.model_dump(),'sha256':digest(self.strategy_spec.model_dump())})
+                    strategy={'spec':self.strategy_spec.model_dump(),'name':self.strategy_spec.name,'fpga_supported':fpga_supported(self.strategy_spec),'sha256':digest(self.strategy_spec.model_dump())})
 
     def subscribe(self, client):
         queue = asyncio.Queue(maxsize=256)

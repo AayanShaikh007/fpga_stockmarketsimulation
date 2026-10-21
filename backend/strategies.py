@@ -121,7 +121,7 @@ class StrategyStore:
 
     def backups(self,identifier):
         self.path(identifier)
-        return [json.loads(p.read_text(encoding='utf-8')) for p in sorted((self.root/'backups'/identifier).glob('*.json'))]
+        return [json.loads(p.read_text(encoding='utf-8')) for p in sorted((self.root/'backups'/identifier).glob('*.json'),key=lambda p:int(p.stem))]
 
     def restore(self,identifier,revision,expected):
         with self.lock:
