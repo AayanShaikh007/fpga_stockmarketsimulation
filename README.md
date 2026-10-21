@@ -274,3 +274,37 @@ One 27 MHz cycle is about 37.04 ns; that is not an observed end-to-end measureme
 The live host demo separately measures send-to-reply time, including UART, USB,
 OS scheduling, and reply processing. The physical UART check measured host round trips of 4.19-4.66 ms; isolated
 engine latency has not been measured.
+
+## Strategy research workspace
+
+Open **Strategies** in the dashboard. Write a hypothesis and choose fixed-anchor
+or moving-average reversion. Thresholds are normalized ticks, not dollars. The
+moving average uses only prior samples and waits for its window to fill.
+
+1. Create a strategy, set its order/position limits, and wait for **Saved**.
+   Edits autosave after 800 ms. Conflicting saves pause rather than overwrite.
+2. Export a `.strategy.json` file for a portable copy. Import validates its schema;
+   files contain declarative settings, never executable Python.
+3. Freeze a saved revision. Future edits do not change that snapshot.
+4. Select a historical dataset and run Development (first 70%). Tune only there.
+   Freeze your final rule, then run Validation (last 30%) without further tuning.
+5. Select **Use for next run**, Python engine, and Local $10,000 to paper simulate.
+   Alpaca PAPER execution still requires live data and explicit order consent;
+   historical backtests never submit broker orders.
+
+Backtests start fresh with $10,000 per period. Signals fill on the next sample
+with configured slippage and fees; the final pending signal is not filled.
+The chart, drawdown, fills, and buy-and-hold comparison are simulation results,
+not evidence of profitability. Each period starts without prior strategy state.
+The software cannot guarantee you have never inspected validation data.
+
+Saved files live under ignored `backend/data/research/`: `strategies/` holds
+current revisions, `backups/` previous revisions, `snapshots/` frozen rules, and
+`experiments/` result JSON with dataset and rule hashes. Copy/export these files
+for backups; GitHub does not store them. The editor also offers browser draft
+recovery and revision restore. Autosave cannot protect against disk loss.
+
+Custom strategies currently run in Python. FPGA Live accepts only the original
+fixed-anchor rule (threshold 5, order 20, position limit 100); incompatible rules
+are rejected before opening UART. No new bitstream or FPGA strategy-upload
+protocol was added. Existing frontend/backend startup commands remain unchanged.
