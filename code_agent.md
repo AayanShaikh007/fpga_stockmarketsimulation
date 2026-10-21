@@ -539,3 +539,32 @@ from this session.
 - Committing and publishing in focused adapter/test, controller/API, frontend,
   documentation, and validation-log groups. No credential values or account data
   were written to tracked files; local order journals remain ignored.
+
+### 2026-10-21 — Strategy research workspace
+
+- Implemented the authorized first strategy milestone: declarative fixed-anchor
+  and prior-sample SMA reversion templates, hypothesis editing, bounded custom
+  thresholds/order sizes/position limits, JSON import/export, and library files.
+- Added 800 ms autosave, optimistic revision checks, atomic fsynced disk writes,
+  previous-revision backups/restore, browser draft recovery, and frozen snapshots.
+- Added development/validation backtests with chronological 70/30 split,
+  next-sample fills, fees/slippage, equity curves, drawdown, buy-and-hold comparison,
+  immutable result JSON, and history. No arbitrary Python code is executed.
+- Frozen strategies can drive Python local or explicitly authorized live Alpaca
+  PAPER runs. Custom limits apply to local and broker holdings. No real-money
+  host is supported; no broker orders were submitted in this task.
+- Original FPGA rules remain the only supported hardware configuration; reject
+  incompatible strategies before opening UART. No RTL/constraints/bitstream changed.
+- Updated risk labels/reconnect metadata, introduction version and research workflow
+  documentation. Research data remains ignored under backend/data/research.
+- Validation: 66 backend tests, six frontend tests, frontend production build passed.
+  First original-suite run skipped nine HDL tests because Icarus was absent from
+  terminal PATH; activated tools/activate.ps1 and all 15 original tests passed.
+  Backend tests report the existing Starlette/httpx deprecation warning.
+- Confirmed existing backend idle with no owner. Automatic policy review rejected
+  the restart command before execution; did not bypass it. User must manually
+  restart backend to load routes. Browser visual QA remains unverified due saved
+  browser access policy. No new physical FPGA acceptance test was performed.
+- Delivered meaningful commits for persistence, API/backtests, paper risk limits,
+  workspace UI, regression tests, reconnect metadata, docs/guide, and this log;
+  publishing to main. Strategy upload to FPGA remains a later milestone.
