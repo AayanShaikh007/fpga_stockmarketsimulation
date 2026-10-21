@@ -1,5 +1,35 @@
 # Validation — October 20, 2026
 
+## Market data and paper research milestone
+
+- Existing reference/RTL suite: **15 passed, zero skipped**; no RTL or constraint
+  changes were made for stock integration.
+- Backend suite: **50 passed**, covering paper accounting/fees/cash constraints,
+  fixed-anchor price mapping, mocked Alpaca authentication/subscription and paginated
+  history, dataset integrity, replay completion, normalized fake-UART responses,
+  live-source cancellation/failure cleanup, classified UART counters, and the prior
+  stream/ownership/reset tests.
+- Frontend unit suite: **3 passed**. TypeScript/Vite build passed and npm audit
+  reported zero vulnerabilities.
+- Running-service acceptance through the actual Vite HTTP/WebSocket proxy:
+  synthetic DEMO replay emitted all 12 samples, retained explicit provenance,
+  completed with ownership released, and produced a nonnegative-cash/long-only
+  paper ledger. No serial packets were sent in that check. A live start with absent
+  credentials returned an explicit setup error with no generated-data fallback.
+- Local raw smoke evidence: `build/research-replay-check.jsonl` and
+  `build/research-replay-summary.json`, both ignored by Git.
+- No Alpaca credentials are configured on this PC, so real authenticated market
+  streaming and real historical downloads are **not independently verified**.
+  Provider tests use mocks; the offline DEMO is synthetic. The physical FPGA path
+  has prior acceptance evidence below, but the new replay/stock path was tested
+  with fake serial sessions rather than a fresh physical run.
+- Browser visual/interaction QA remains unverified due to the existing saved
+  localhost browser-access denial. No alternate browser-control route was used.
+- FPGA packet-drop counts remain unavailable because the current protocol does
+  not report them. Only actual host error/feed counters are displayed. Architectural
+  cycle estimates and measured CPU/host times are never presented as equivalent
+  physical compute benchmarks or a measured speedup ratio.
+
 ## Local React dashboard milestone
 
 ### Subsequent physical dashboard-backend acceptance

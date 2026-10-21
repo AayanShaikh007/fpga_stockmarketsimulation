@@ -298,3 +298,103 @@ from this session.
   last observation; the operator must press/release S2 before the next live run.
 - This documentation/evidence update is committed and published using the
   established focused-commit workflow; no runtime source, RTL, or constraints changed.
+
+## 2026-10-20 - Launch dashboard for the user
+
+- User requested to see the dashboard and confirmed pressing/releasing S2.
+- Started FastAPI at `http://127.0.0.1:8000` and Vite at
+  `http://127.0.0.1:5173`; both reported ready. Left them running for the user's
+  requested interactive session. No quotes were sent and no run was started.
+- Attempted to open the dashboard using the supported Edge browser tool. A saved
+  permission/managed policy denied localhost origin access. Did not attempt any
+  alternative browser-control route; provided the direct link for the user to open.
+- The user can select FPGA Live, COM6, attest the already performed physical reset,
+  and start when ready. Browser visual QA remains unverified by the agent.
+
+## 2026-10-20 - Explain the user's running graph and inactive LEDs
+
+- Read `/api/status` without interrupting the active run. It reported running
+  Simulation at five quotes/second, an empty serial port, reference validation,
+  null host RTT/cycles, and measured Python step timing. This run uses Python only.
+- Reviewed current LED logic: physical activity and decision outputs require actual
+  FPGA engine result events. Simulation does not send UART quotes and therefore
+  does not trigger those board LEDs.
+- Explained that prices are generated in both modes, while FPGA Live delegates
+  decisions to hardware and compares replies against Python. Provided steps to
+  stop simulation, select FPGA Live/COM6, confirm physical reset, and start.
+- No run controls, UART commands, source files, or hardware state were changed.
+
+## 2026-10-20 - Explain current repository code after reported local changes
+
+- Inspected Git status/history, frontend components and WebSocket hook, backend
+  routes/controller/telemetry, generator/model/protocol/shared serial transport,
+  FPGA top/core/engine/parser, and build script.
+- Git reports no application-source changes against HEAD `2198554`; the only
+  working-tree change before this explanation was the accumulated agent log.
+  Unsaved editor buffers or edits in another checkout cannot be inferred from Git.
+- Explained the two execution paths, command/telemetry flow, risk-rule example,
+  packet validation, asynchronous serial ownership, FPGA pipeline, LED timers,
+  and the distinction between host RTT and architectural engine-cycle estimate.
+- No running session was interrupted, no hardware packets were sent, and no
+  application code was changed. Runtime tests were not needed for this explanation.
+
+## 2026-10-20 - Add market integration, replay, paper ledger, and engineering monitor
+
+- Request: add real AAPL/NVDA/TSLA prices, inspectable decision markers, $10,000
+  paper portfolio/P&L/fees, FPGA metrics, and historical replay; make focused
+  commits and push. Inspected the current backend, transport, frontend, tests,
+  and official Alpaca streaming/history documentation before implementation.
+- Chose data-only Alpaca IEX WebSocket trade prints and paginated REST historical
+  bars. Added ignored backend `.env` configuration plus a safe example. Credentials
+  stay server-side; the provider endpoint returns only configuration/coverage.
+  There are no broker order APIs or real-money execution code paths.
+- Asked whether the user has credentials; none are configured locally during this
+  task. Implemented explicit missing-key errors without generated fallback.
+- Preserved the unchanged FPGA fair-price/position design by normalizing USD prices
+  to basis-point ticks around the first accepted sample. Generated inputs keep
+  their original ticks and a fixed synthetic $100 anchor. One stock runs at a time
+  because the hardware owns only one position register.
+- Added source provenance/timestamps, validated replay downloads with bounded
+  pagination and ordered samples, cached dataset hashes, and an explicitly
+  synthetic 12-sample DEMO fixture for offline testing. No real market dataset
+  was downloaded without credentials; synthetic data is not labeled real history.
+- Added a Decimal long-only paper ledger with $10,000 initial cash, average cost,
+  realized/unrealized/total P&L, cash-funded fills, configurable fees, and unfilled
+  quantities. Engine orders/position and paper fills/position remain distinct.
+- Extended shared UART transport with classified error counters and separately
+  timed Python reference steps, preserving single-send stop-and-wait behavior,
+  existing validation, and the 2 ms pause. Added bounded RTT p95/cumulative metrics.
+  FPGA-side packet-drop counts stay null/unavailable; no unsupported hardware
+  metric or measured compute speedup is fabricated.
+- Integrated generated/live/replay sources independently from Python/FPGA mode.
+  Live bursts use a latest-event bounded queue, count superseded events, and reject
+  duplicates/stale/out-of-order data. Stop/kill works while markets are idle;
+  pending source tasks and provider sockets close deterministically on exit.
+- Added market-source/stock/replay/date/fee controls, real USD and source-time chart
+  axes, accessible clickable trade markers and detailed risk/timing inspection,
+  paper accounting panels, and engineering diagnostics. Generated charts retain
+  quote-sequence axes. Session export carries enriched telemetry.
+- New tests cover paper identities/fees/cash, normalization, provider mocks,
+  historical pagination/auth errors, dataset tamper/path/date validation, replay
+  streaming, fake-hardware mapping, idle-feed kill, source cleanup, and counters.
+- Verification: 15 original Python/HDL tests passed with zero skips; 50 backend
+  tests passed; 3 frontend unit tests passed; production build passed; npm audit
+  found zero vulnerabilities. Backend test output includes the existing Starlette
+  httpx-compatibility deprecation warning.
+- Found the previous interactive backend stopped with no owner; restarted that
+  service to load new code and retained the existing Vite server for the user.
+  Runtime proxy acceptance replayed all 12 synthetic samples and confirmed paper
+  cash/holdings constraints, completed state/ownership release, and explicit
+  missing-credentials rejection. No hardware requests were sent. Raw smoke logs
+  are in ignored `build/research-replay-*.jsonl/json` files.
+- Browser visual checks remain blocked by the previously saved origin denial;
+  no browser workaround was attempted. Real Alpaca access and a new physical
+  FPGA stock/replay run remain unverified pending credentials and reset readiness.
+- Added detailed usage/modeling limits in `docs/market-research.md`, refreshed
+  README/architecture, and recorded results in `docs/validation.md`.
+- An attempted same-patch delete/add replacement of MarketChart was rejected by
+  the patch tool; rewrote the intended source file normally and its build passed.
+- Used focused commits for the ledger, normalization, provider/replay, metrics,
+  integration, source controls, portfolio/performance panels, marker inspection,
+  lifecycle hardening, integration tests, documentation, and source-time axes.
+  No backdating or artificial empty commits. Final build and GitHub publication follow.
