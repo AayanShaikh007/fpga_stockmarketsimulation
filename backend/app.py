@@ -9,6 +9,7 @@ from serial.tools.list_ports import comports
 from .service import Controller, StartConfig
 from .provider import MarketDataError, provider_status
 from .replay import DownloadRequest, download_dataset, list_datasets
+from .broker import AlpacaPaper, BrokerError
 
 ORIGINS = {'http://localhost:5173', 'http://127.0.0.1:5173'}
 
@@ -30,6 +31,18 @@ def create_app():
     @app.get('/api/provider')
     async def provider():
         return provider_status()
+
+    @app.get('/api/paper-account')
+    async def paper_account(symbol: str = 'AAPL'):
+        broker = None
+        try:
+            broker = AlpacaPaper()
+            return await broker.account(symbol)
+        except (BrokerError, MarketDataError) as exc:
+            raise HTTPException(400,str(exc)) from exc
+        finally:
+            if broker:
+                await broker.close()
 
     @app.get('/api/replays')
     async def replays():

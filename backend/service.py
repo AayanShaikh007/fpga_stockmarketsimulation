@@ -17,6 +17,7 @@ from .paper import PaperPortfolio
 from .performance import Performance
 from .provider import credentials, live_samples
 from .replay import read_dataset, replay_samples
+from .broker import AlpacaPaper
 
 
 class StartConfig(BaseModel):
@@ -30,6 +31,8 @@ class StartConfig(BaseModel):
     symbol: Literal['AAPL', 'NVDA', 'TSLA', 'DEMO'] = 'AAPL'
     replay_id: str = Field(default='demo', max_length=64)
     fee_bps: float = Field(default=1, ge=0, le=100)
+    execution: Literal['local', 'alpaca_paper'] = 'local'
+    paper_confirmed: bool = False
 
 
 class Controller:
@@ -50,6 +53,7 @@ class Controller:
         self.reset_required = False
         self.performance = Performance()
         self.dataset = None
+        self.broker_snapshot = None
 
     def status(self):
         return dict(type='status', state=self.state, mode=self.config.mode,
@@ -58,7 +62,8 @@ class Controller:
                     kill_pending=self.kill_requested and self.state in ('running', 'stopping'),
                     reset_required=self.reset_required, latest=self.latest,
                     source=self.config.source, symbol=self.config.symbol,
-                    replay_id=self.config.replay_id, performance=self.performance.snapshot())
+                    replay_id=self.config.replay_id, performance=self.performance.snapshot(),
+                    execution=self.config.execution, broker=self.broker_snapshot)
 
     def subscribe(self, client):
         queue = asyncio.Queue(maxsize=256)
@@ -77,7 +82,10 @@ class Controller:
             raise ValueError('A run already owns the engine. Stop it before starting another.')
         if config.mode == 'fpga' and (not config.port.strip() or not config.reset_confirmed):
             raise ValueError('Select a port and physically reset the FPGA, then confirm reset before every live run.')
+        if config.execution == 'alpaca_paper' and (config.source != 'live' or not config.paper_confirmed):
+            raise ValueError('Alpaca PAPER requires live stock data and explicit paper-order confirmation. Historical/generated runs stay local.')
         self.dataset = None
+        self.broker_snapshot = None
         if config.source == 'live':
             if config.symbol == 'DEMO':
                 raise ValueError('Select AAPL, NVDA, or TSLA for a live feed')
@@ -146,11 +154,17 @@ class Controller:
             mapper.anchor = Decimal(100)
         portfolio = PaperPortfolio(fee_bps=self.config.fee_bps)
         session = None
+        broker = None
         source = self.samples()
         next_sample = None
         last_sample = None
         sequence = 0
         try:
+            if self.config.execution == 'alpaca_paper':
+                broker = AlpacaPaper()
+                await broker.preflight(self.config.symbol)
+                self.broker_snapshot = broker.snapshot
+                self.emit(self.status())
             if self.config.mode == 'fpga':
                 session = await asyncio.to_thread(self.session_factory, self.config.port)
             while sequence < 2**32:
@@ -192,7 +206,12 @@ class Controller:
                     message = telemetry(quote, result, 'simulation', self.run_id,
                                         python_us=(time.perf_counter_ns()-before)/1000)
                 self.performance.observe(message)
-                paper = portfolio.apply(result[0], sample.price)
+                if broker is not None:
+                    self.broker_snapshot = await broker.execute(self.config.symbol, result[0], sample.price,
+                        self.run_id, sequence, abort=lambda:self.stop_event.is_set() or self.kill_requested)
+                    paper = None
+                else:
+                    paper = portfolio.apply(result[0], sample.price)
                 message.update({
                     'symbol': sample.symbol, 'data_source': sample.source,
                     'market_timestamp': None if control_only else sample.timestamp,
@@ -201,6 +220,7 @@ class Controller:
                     'input_quantity': sample.quantity, 'control_only': control_only,
                     'normalization': 'fixed-anchor basis points; 10000 = anchor',
                     'paper': paper, 'performance': self.performance.snapshot(),
+                    'execution':self.config.execution,'broker':self.broker_snapshot,
                     'risk_checks': {'max_order':20,'position_limit':100,
                                     'position_before':result[1]-result[0],
                                     'position_after':result[1],
@@ -217,7 +237,7 @@ class Controller:
                 if self.kill_requested or self.stop_event.is_set():
                     continue
                 try:
-                    await asyncio.wait_for(self.wake.wait(), timeout=1/self.config.speed)
+                    await asyncio.wait_for(self.wake.wait(), timeout=max(5,1/self.config.speed) if broker else 1/self.config.speed)
                 except asyncio.TimeoutError:
                     pass
         except Exception as exc:
@@ -225,6 +245,12 @@ class Controller:
                 self.performance.uart = dict(getattr(session, 'metrics', {}))
             self.error, self.state = str(exc), 'error'
         finally:
+            if broker is not None:
+                try:
+                    await broker.close()
+                except Exception as exc:
+                    self.error, self.state = str(exc), 'error'
+                self.broker_snapshot = dict(broker.snapshot or {}) | {'last_order':broker.last_order}
             if next_sample is not None:
                 next_sample.cancel()
                 with suppress(asyncio.CancelledError, Exception):
