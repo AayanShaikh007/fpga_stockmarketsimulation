@@ -7,8 +7,8 @@ All orders and fills are simulated; this does not connect to an exchange.
 ## React trading dashboard
 
 The local dashboard supports **Simulation** (Python reference decisions) and
-**FPGA Live** (physical UART replies checked against Python). Both use generated
-market data. The terminal includes price charts with buy/sell markers, decision
+**FPGA Live** (physical UART replies checked against Python). Data source is selected independently: generated prices, Alpaca IEX live
+stock trades, or historical/offline replay. The terminal includes price charts with buy/sell markers, decision
 history, position/risk limits, kill status, JSON export, COM-port selection,
 speed adjustment, and host round-trip metrics.
 
@@ -40,7 +40,7 @@ cd C:\Coding\fpga_stockmarketsimulation\frontend
 npm.cmd run dev
 ```
 
-Open **http://127.0.0.1:5173**. Select **Simulation**, then **Start run** first.
+Open **http://127.0.0.1:5173**. Select **Python engine** with **Generated demo prices**, then **Start run** first.
 Stop ends generation; each new simulation starts at position zero with seed 1.
 Adjust speed from 1 to 20 quotes/second. Export saves the last 240 captured quotes;
 the table displays the latest 12 matching its filter.
@@ -60,7 +60,7 @@ the current transaction finishes or times out.
 
 Host RTT includes UART/USB and host overhead. The reported one-cycle architecture
 implies approximately 37.04 ns at 27 MHz; this is an estimate, **not independently
-measured physical computation latency**. Simulation does not invent FPGA timings.
+measured physical computation latency**. Python engine mode does not invent FPGA timings.
 
 Dashboard checks:
 
@@ -92,6 +92,22 @@ board wrapper, pin/clock constraints, and build flow are implemented.
 The complete design synthesizes, places, routes at 27 MHz, and produces a bitstream.
 **Physical UART validation passed:** 22 replies matched Python, including kill behavior.
 LED appearance, power cycling, and long-duration operation still need checking.
+
+## Advanced market research features
+
+- Stream AAPL, NVDA, or TSLA trade prints from the data-only Alpaca IEX WebSocket.
+- Download paginated historical bars and replay stored, hashed datasets through
+  Python or the physical FPGA. A clearly labeled synthetic DEMO works offline.
+- Inspect BUY/SELL markers for input price, risk checks, sequence, and UART timing.
+- Track a $10,000 cash-only paper portfolio, fills, fees, and realized/unrealized P&L.
+- Inspect UART error counters, host RTT percentiles, and measured Python reference
+  timing separately from architectural FPGA cycle estimates.
+
+Read [market setup and research workflow](docs/market-research.md) before using
+real prices. API credentials belong only in ignored `backend/.env`; the backend
+never calls a broker order endpoint. One stock runs at a time because the FPGA
+has one position register. USD stock prices are converted into fixed-anchor
+basis-point ticks for the existing engine; both values are visible in inspectors.
 
 ## Start with Python
 

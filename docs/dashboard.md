@@ -1,5 +1,10 @@
 # Local dashboard architecture
 
+For the newer independent market-source selector, live IEX integration, hashed
+replays, paper accounting, detailed markers, and performance counters, see
+[market research features](market-research.md). The baseline below describes the
+original generated-data workflow; its ownership and UART safety rules still apply.
+
 The React terminal runs at `http://127.0.0.1:5173`. Vite proxies `/api` and `/ws`
 to one FastAPI process at `127.0.0.1:8000`. Keep the backend single-worker:
 its controller is the process-wide run owner. Windows also opens serial ports
@@ -8,7 +13,7 @@ Gowin Programmer's JTAG interface is separate; close any tool using the UART por
 
 ## Modes and data
 
-Both modes reuse `nanoquant.feed.generate` with seed 1 and integer prices. There
+The generated data source reuses `nanoquant.feed.generate` with seed 1 and integer prices. There
 is no stock exchange connection and all orders/fills remain simulated.
 
 - **Simulation:** decisions come from `nanoquant.model.Engine`. Host UART latency,
