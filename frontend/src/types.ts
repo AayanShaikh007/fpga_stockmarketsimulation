@@ -30,6 +30,7 @@ export interface Telemetry {
   price_usd?: number | null; anchor_usd?: number | null; input_quantity?: number
   control_only?: boolean; normalization?: string; paper?: Paper; performance?: Performance
   risk_checks?: { max_order: number; position_limit: number; position_before: number; position_after: number; order_within_limit: boolean; position_within_limit: boolean }
+  strategy?: {name?:string;sha256?:string;snapshot_id?:string|null;spec?:unknown}; strategy_snapshot_id?:string|null
   execution?: Execution; broker?: BrokerAccount | null
 }
 export interface Status {
@@ -37,6 +38,7 @@ export interface Status {
   owner: string | null; speed: number; port: string; error: string | null
   reset_required: boolean; kill_pending: boolean; latest: Telemetry | null
   source?: DataSource; symbol?: string; replay_id?: string; performance?: Performance
+  strategy?: {name?:string;sha256?:string;snapshot_id?:string|null;spec?:unknown}; strategy_snapshot_id?:string|null
   execution?: Execution; broker?: BrokerAccount | null
 }
 export interface Port { device: string; description: string; hwid: string }
