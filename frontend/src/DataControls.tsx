@@ -28,6 +28,22 @@ export default function DataControls(props: Props) {
     } catch (e) { setError(e instanceof Error ? e.message : 'Source setup failed') }
   }
   useEffect(() => { if (props.connected) void refresh() }, [props.connected])
+  useEffect(() => {
+    if (!props.connected) return
+    let active = true
+    const abort = new AbortController()
+    async function checkProvider() {
+      try {
+        const response = await fetch('/api/provider', { signal: abort.signal })
+        if (!response.ok) return
+        const provider = await response.json()
+        if (active) setConfigured(provider.configured)
+      } catch { /* Existing connection/error indicators handle offline service. */ }
+    }
+    const timer = setInterval(() => void checkProvider(), 15000)
+    window.addEventListener('focus', checkProvider)
+    return () => { active = false; abort.abort(); clearInterval(timer); window.removeEventListener('focus', checkProvider) }
+  }, [props.connected])
   async function download() {
     setDownloading(true); setError('')
     try {
@@ -39,6 +55,10 @@ export default function DataControls(props: Props) {
     finally { setDownloading(false) }
   }
   const selected = datasets.find(d => d.id === props.replayId)
+  const downloadReason = !props.connected ? 'Connect to the backend before downloading.'
+    : props.disabled ? 'Stop the current run before downloading history.'
+    : downloading ? 'Historical download is in progress.'
+    : !configured ? 'Waiting for Alpaca setup. Use the refresh icon after adding backend/.env credentials.' : ''
   return <section className="panel source-panel" aria-label="Market data source">
     <div className="source-heading"><span><Database size={16}/> Market data</span><span className={`pill ${configured ? 'green' : 'subtle'}`}>{configured ? 'Alpaca IEX configured' : 'API keys not configured'}</span><button className="icon-button" aria-label="Refresh market data configuration" onClick={() => void refresh()} disabled={!props.connected}><RefreshCw size={14}/></button></div>
     <div className="source-fields">
@@ -48,7 +68,7 @@ export default function DataControls(props: Props) {
       <label>Paper fee (bps)<input type="number" aria-label="Paper trading fee basis points" min="0" max="100" step="0.1" value={props.feeBps} disabled={props.disabled} onChange={e => props.setFeeBps(Number(e.target.value))}/></label>
     </div>
     {props.source === 'live' && <p className="source-note">{configured ? 'Live IEX trade prints; coverage is one exchange. No new trades can mean the market is closed. No generated fallback.' : 'Add data-only Alpaca credentials to backend/.env and refresh. Keys never go to this browser.'} One stock per run; changing stocks starts a new portfolio and requires FPGA reset.</p>}
-    {props.source === 'replay' && <><div className="download-controls"><label>From (UTC)<input type="date" value={start} disabled={downloading} onChange={e => setStart(e.target.value)}/></label><label>Through (UTC)<input type="date" value={end} disabled={downloading} onChange={e => setEnd(e.target.value)}/></label><label>Bars<select value={timeframe} onChange={e => setTimeframe(e.target.value)} disabled={downloading}><option>1Min</option><option>5Min</option><option>1Day</option></select></label><button className="button secondary" onClick={() => void download()} disabled={!configured || downloading || props.disabled}><Download size={14}/>{downloading ? 'Downloading…' : `Download ${props.symbol} history`}</button></div><p className="source-note">{selected?.source === 'synthetic_fixture' ? 'Selected DEMO is synthetic, not historical stock data.' : `Selected: ${selected?.symbol ?? 'none'} · ${selected?.start ?? ''} → ${selected?.end ?? ''}` } Replay uses bar close prices; volume is a requested-quantity proxy, capped for the wire protocol. Speed is samples per second.</p>{selected?.sha256 && <p className="dataset-hash">Dataset SHA256: {selected.sha256}</p>}</>}
+    {props.source === 'replay' && <><div className="download-controls"><label>From (UTC)<input type="date" value={start} disabled={downloading} onChange={e => setStart(e.target.value)}/></label><label>Through (UTC)<input type="date" value={end} disabled={downloading} onChange={e => setEnd(e.target.value)}/></label><label>Bars<select value={timeframe} onChange={e => setTimeframe(e.target.value)} disabled={downloading}><option>1Min</option><option>5Min</option><option>1Day</option></select></label><button className="button secondary" onClick={() => void download()} disabled={Boolean(downloadReason)} aria-describedby="download-availability"><Download size={14}/>{downloading ? 'Downloading…' : `Download ${props.symbol} history`}</button></div><p id="download-availability" className="source-note" role="status">{downloadReason || 'Alpaca setup detected. Choose dates and download real history.'}</p><p className="source-note">{selected?.source === 'synthetic_fixture' ? 'Selected DEMO is synthetic, not historical stock data.' : `Selected: ${selected?.symbol ?? 'none'} · ${selected?.start ?? ''} → ${selected?.end ?? ''}` } Replay uses bar close prices; volume is a requested-quantity proxy, capped for the wire protocol. Speed is samples per second.</p>{selected?.sha256 && <p className="dataset-hash">Dataset SHA256: {selected.sha256}</p>}</>}
     {props.source === 'generated' && <p className="source-note">Repeatable generated prices. USD demo marks = original integer ticks / 100. No stock API is used.</p>}
     {error && <p role="alert" className="source-error">{error}</p>}
   </section>

@@ -444,3 +444,38 @@ from this session.
 - No brokerage order/account endpoint was called, no dashboard run was started,
   and no physical FPGA packets were sent. Market-data authentication is now
   verified; live-stream/historical acceptance is separate from this setup check.
+
+## 2026-10-20 - Explain live and historical paper-simulation workflows
+
+- User requested separate live-data and historical-data instructions, including
+  continuing the reversible $10,000 investment simulation.
+- Clarified that both workflows already use the local $10,000 paper ledger; the
+  application does not submit orders to Alpaca's paper broker or a real account.
+  Generated demo prices provide the continuous offline alternative.
+- Explained source selection, independent Python/FPGA engine choice, historical
+  download/dataset selection, finite replay, normal stop versus latched kill,
+  fresh-run portfolio reset, and physical S2 reset before new FPGA runs.
+- No credentials, runtime controls, portfolio state, or hardware state were changed.
+
+## 2026-10-20 - Explain Alpaca live versus paper brokerage capability
+
+- Checked official Alpaca documentation: Alpaca supports both real-money live
+  brokerage trading and paper trading, with separate endpoint/credential contexts.
+- Distinguished those provider capabilities from NanoQuant, which currently reads
+  market data and runs a local virtual ledger without submitting broker orders.
+- No account, credential, trading-mode, or execution changes were made.
+
+## 2026-10-20 - Refresh historical-download availability after credential setup
+
+- User reported a disabled NVDA history button. The running backend reported
+  provider configured=true, completed simulation replay, and no owner. Browser
+  setup state could remain false after credentials were added while the page was open.
+- Added lightweight provider-status refresh every 15 seconds and on window focus,
+  with unmount cleanup. Added visible download-disable reasons and backend-connection
+  gating; retained manual refresh. Updated the introduction's API setup guidance.
+- During the task, user asked whether Alpaca balance resets before each trade.
+  Clarified that `PaperPortfolio` initializes local virtual cash once per run;
+  trades accumulate cash/position/P&L changes, with no Alpaca balance-setting call.
+- A Windows-default decoding error interrupted an onboarding text update; reran
+  with explicit UTF-8. Frontend's six tests pass and production build passes.
+  No broker account, active run, hardware packet, or credentials were modified.
