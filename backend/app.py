@@ -2,17 +2,20 @@ import asyncio
 from contextlib import asynccontextmanager, suppress
 from uuid import uuid4
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from serial.tools.list_ports import comports
 
 from .service import Controller, StartConfig
+from .provider import MarketDataError, provider_status
+from .replay import DownloadRequest, download_dataset, list_datasets
 
 ORIGINS = {'http://localhost:5173', 'http://127.0.0.1:5173'}
 
 
 def create_app():
     controller = Controller()
+    download_lock = asyncio.Lock()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -22,7 +25,29 @@ def create_app():
 
     app = FastAPI(title='NanoQuant local telemetry', lifespan=lifespan)
     app.state.controller = controller
-    app.add_middleware(CORSMiddleware, allow_origins=list(ORIGINS), allow_methods=['GET'])
+    app.add_middleware(CORSMiddleware, allow_origins=list(ORIGINS), allow_methods=['GET','POST'], allow_headers=['Content-Type'])
+
+    @app.get('/api/provider')
+    async def provider():
+        return provider_status()
+
+    @app.get('/api/replays')
+    async def replays():
+        return await asyncio.to_thread(list_datasets)
+
+    @app.post('/api/replays/download')
+    async def download(body: DownloadRequest, request: Request):
+        if request.headers.get('origin') not in ORIGINS | {None}:
+            raise HTTPException(403, 'Origin not allowed')
+        if download_lock.locked():
+            raise HTTPException(409, 'A historical download is already in progress')
+        try:
+            async with download_lock:
+                return await download_dataset(body)
+        except MarketDataError as exc:
+            raise HTTPException(503, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
 
     @app.get('/api/status')
     async def status():
@@ -65,7 +90,7 @@ def create_app():
                         controller.speed(client, message.get('speed'))
                     else:
                         raise ValueError('Unknown command.')
-                except (ValueError, TypeError) as exc:
+                except (ValueError, TypeError, MarketDataError) as exc:
                     queue.put_nowait({'type': 'command_error', 'message': str(exc)})
         except (WebSocketDisconnect, ValueError, RuntimeError):
             pass
