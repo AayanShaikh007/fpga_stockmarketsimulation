@@ -18,6 +18,7 @@ from .performance import Performance
 from .provider import credentials, live_samples
 from .replay import read_dataset, replay_samples
 from .broker import AlpacaPaper
+from .strategies import Strategy, StrategyStore, StrategyEngine, BUILTIN, fpga_supported, digest
 
 
 class StartConfig(BaseModel):
@@ -33,6 +34,7 @@ class StartConfig(BaseModel):
     fee_bps: float = Field(default=1, ge=0, le=100)
     execution: Literal['local', 'alpaca_paper'] = 'local'
     paper_confirmed: bool = False
+    strategy_snapshot_id:str | None = Field(default=None,pattern='^[a-f0-9]{32}$')
 
 
 class Controller:
@@ -54,6 +56,8 @@ class Controller:
         self.performance = Performance()
         self.dataset = None
         self.broker_snapshot = None
+        self.strategy_spec = BUILTIN
+        self.strategy_snapshot = None
 
     def status(self):
         return dict(type='status', state=self.state, mode=self.config.mode,
@@ -63,7 +67,9 @@ class Controller:
                     reset_required=self.reset_required, latest=self.latest,
                     source=self.config.source, symbol=self.config.symbol,
                     replay_id=self.config.replay_id, performance=self.performance.snapshot(),
-                    execution=self.config.execution, broker=self.broker_snapshot)
+                    execution=self.config.execution, broker=self.broker_snapshot,
+                    strategy_snapshot_id=self.config.strategy_snapshot_id,
+                    strategy={'spec':self.strategy_spec.model_dump(),'sha256':digest(self.strategy_spec.model_dump())})
 
     def subscribe(self, client):
         queue = asyncio.Queue(maxsize=256)
@@ -84,6 +90,11 @@ class Controller:
             raise ValueError('Select a port and physically reset the FPGA, then confirm reset before every live run.')
         if config.execution == 'alpaca_paper' and (config.source != 'live' or not config.paper_confirmed):
             raise ValueError('Alpaca PAPER requires live stock data and explicit paper-order confirmation. Historical/generated runs stay local.')
+        frozen = StrategyStore().snapshot(config.strategy_snapshot_id) if config.strategy_snapshot_id else None
+        spec = Strategy(**frozen['spec']) if frozen else BUILTIN
+        if config.mode == 'fpga' and not fpga_supported(spec):
+            raise ValueError('This frozen strategy is Python-only. Current FPGA supports only anchor threshold=5, max_order=20, position_limit=100. No strategy upload protocol exists yet.')
+        self.strategy_spec,self.strategy_snapshot=spec,frozen
         self.dataset = None
         self.broker_snapshot = None
         if config.source == 'live':
@@ -148,7 +159,7 @@ class Controller:
                                    datetime.now(timezone.utc).isoformat(), 'generated')
 
     async def run(self):
-        engine = Engine()
+        engine = StrategyEngine(self.strategy_spec)
         mapper = Normalizer()
         if self.config.source == 'generated':
             mapper.anchor = Decimal(100)
@@ -221,11 +232,13 @@ class Controller:
                     'normalization': 'fixed-anchor basis points; 10000 = anchor',
                     'paper': paper, 'performance': self.performance.snapshot(),
                     'execution':self.config.execution,'broker':self.broker_snapshot,
-                    'risk_checks': {'max_order':20,'position_limit':100,
+                    'strategy':{'name':self.strategy_spec.name,'sha256':digest(self.strategy_spec.model_dump()),
+                                'snapshot_id':self.config.strategy_snapshot_id},
+                    'risk_checks': {'max_order':self.strategy_spec.max_order,'position_limit':self.strategy_spec.position_limit,
                                     'position_before':result[1]-result[0],
                                     'position_after':result[1],
-                                    'order_within_limit':abs(result[0])<=20,
-                                    'position_within_limit':abs(result[1])<=100},
+                                    'order_within_limit':abs(result[0])<=self.strategy_spec.max_order,
+                                    'position_within_limit':abs(result[1])<=self.strategy_spec.position_limit},
                 })
                 self.latest = message
                 self.emit(message)

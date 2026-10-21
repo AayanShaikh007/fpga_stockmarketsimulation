@@ -10,6 +10,8 @@ from .service import Controller, StartConfig
 from .provider import MarketDataError, provider_status
 from .replay import DownloadRequest, download_dataset, list_datasets
 from .broker import AlpacaPaper, BrokerError
+from .research_api import research_router
+from starlette.responses import JSONResponse
 
 ORIGINS = {'http://localhost:5173', 'http://127.0.0.1:5173'}
 
@@ -26,6 +28,13 @@ def create_app():
 
     app = FastAPI(title='NanoQuant local telemetry', lifespan=lifespan)
     app.state.controller = controller
+    app.include_router(research_router())
+
+    @app.middleware('http')
+    async def guard_research_origin(request:Request,call_next):
+        if request.method in ('POST','PUT','DELETE','PATCH') and request.headers.get('origin') not in ORIGINS | {None}:
+            return JSONResponse({'detail':'Origin not allowed'},status_code=403)
+        return await call_next(request)
     app.add_middleware(CORSMiddleware, allow_origins=list(ORIGINS), allow_methods=['GET','POST'], allow_headers=['Content-Type'])
 
     @app.get('/api/provider')
