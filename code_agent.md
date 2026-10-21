@@ -262,3 +262,39 @@ from this session.
   and are stopped during teardown. Final publication and HEAD checks follow.
 - The previous seven-commit publication completed successfully; local and remote
   main matched `cd7690c`, with a clean worktree before this dashboard task.
+
+## 2026-10-20 - Clarify physical reset button
+
+- User asked whether the project's reset is S1 or S2. Checked the current CST:
+  `rst_n` is assigned to package pin 4, LVCMOS18.
+- Checked Sipeed's board documentation and FAQ, which identifies S2 with the
+  JTAG_SEL pin; the pin-4/S2 mapping matches this reset assignment. Instructed
+  the user to press and release S2 while keeping the board powered.
+- No hardware commands or runtime changes were made. Physical dashboard testing
+  still awaits the user's confirmation that reset is complete.
+
+## 2026-10-20 - Physical dashboard-backend test after operator reset
+
+- Operator confirmed pressing both board buttons sequentially. Verified the FTDI
+  board UART was COM6 and that no backend was listening on port 8000.
+- Started the local FastAPI server and connected one test client to its actual
+  `/ws` endpoint. Started FPGA Live with COM6, seed 1, five quotes/second, and the
+  operator's reset confirmation. No browser automation was used.
+- Received 20 physical quote responses, independently checked their sequence,
+  price, quantity, signed order, position, kill state, and telemetry provenance
+  against the existing generator/model. The shared transport additionally
+  validated reply header, CRC, sequence, architectural cycles, and equivalence.
+- Sent one WebSocket kill command. Its physical reply was acknowledged at
+  sequence 20, giving 21 matching physical responses total. BUY, SELL, HOLD,
+  and KILL appeared. Final position -43; final state killed, owner released,
+  reset_required true. No automatic retries occurred.
+- Measured host RTT: 4.1874-4.3436 ms, mean 4.2561 ms. These include UART/USB/host
+  overhead and are not isolated physical FPGA computation measurements.
+- Saved raw events in `build/dashboard-hardware-check.jsonl` and summary in
+  `build/dashboard-hardware-summary.json`, both ignored. Updated validation docs.
+- The dashboard stops on acknowledged kill, so a second post-kill quote was not
+  sent in this run. Browser rendering and LED appearance remain unverified.
+- Stopped the temporary backend after the run. Board remains kill-latched at
+  last observation; the operator must press/release S2 before the next live run.
+- This documentation/evidence update is committed and published using the
+  established focused-commit workflow; no runtime source, RTL, or constraints changed.

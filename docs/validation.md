@@ -2,6 +2,28 @@
 
 ## Local React dashboard milestone
 
+### Subsequent physical dashboard-backend acceptance
+
+After the operator confirmed pressing/releasing the board buttons, one bounded
+FPGA Live run used the actual FastAPI `/ws` endpoint, shared `SerialSession`, and
+COM6 at five quotes/second with seed 1. All **21 physical responses passed**:
+20 generated quotes followed by a WebSocket kill command and a validated kill
+reply. BUY, SELL, HOLD, sequence, price/quantity mapping, header/CRC, position,
+reference equivalence, and reported one-cycle architecture checks passed.
+The final position was -43, kill was acknowledged, ownership was released, and
+the final status required physical reset. No requests were retried.
+
+Measured host RTT: minimum **4.1874 ms**, maximum **4.3436 ms**, mean
+**4.2561 ms**. These are UART/USB/host measurements, not isolated engine latency.
+The earlier CLI's second post-kill quote was not repeated here: the dashboard
+intentionally stops after its first acknowledged kill.
+
+Local evidence: `build/dashboard-hardware-check.jsonl` and
+`build/dashboard-hardware-summary.json` (Git-ignored). The test used a protocol
+client, not browser automation; browser visual/interaction QA remains unverified.
+Reset S2 before another physical run. The implementation-stage limitations below
+describe the state before this subsequent physical test.
+
 The dashboard service reuses the deterministic market feed and Python reference;
 the CLI and backend now share `nanoquant.transport.SerialSession` for validated
 stop-and-wait physical UART I/O. No RTL or constraints changed in this milestone.
