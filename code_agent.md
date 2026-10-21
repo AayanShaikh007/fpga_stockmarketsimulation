@@ -398,3 +398,37 @@ from this session.
   integration, source controls, portfolio/performance panels, marker inspection,
   lifecycle hardening, integration tests, documentation, and source-time axes.
   No backdating or artificial empty commits. Final build and GitHub publication follow.
+
+## 2026-10-20 - Explain the short simulation replay
+
+- User asked why an apparent AAPL simulation ends after roughly nine trades.
+- Read the running service status and dataset list without changing the run.
+  The actual completed run used Python execution and the synthetic DEMO replay,
+  not AAPL. Only that 12-sample dataset is currently available. Final sequence
+  was 11, state completed, no error, and the paper ledger recorded 10 fills.
+- Explained that replay stops at dataset exhaustion, not every sample becomes a
+  trade/fill, and the stock selector in replay mode selects a download target.
+  Suggested generated data for a continuous offline run or downloading/selecting
+  actual AAPL history after API setup. No source or hardware state was changed.
+
+## 2026-10-20 - Add a dismissible, versioned onboarding introduction
+
+- User requested a compact centered animated introduction with an X to skip, kept
+  current when new features are added. Inspected current App, styles, and project
+  instructions, then added `Onboarding.tsx` and centralized guide content/version.
+- Seven short steps explain source versus engine, the finite synthetic replay,
+  API setup, physical reset, start/stop/kill, markers, paper fills, and timing limits.
+  The introduction never changes settings, starts a run, or sends hardware commands.
+- Native modal dialog provides background inertness and focus containment; added
+  X/Skip/Escape dismissal, Back/Next and step navigation, manual top-bar reopening,
+  responsive sizing, gentle entrance/step/diagram animation, reduced-motion support,
+  scroll locking, and local versioned dismissal with blocked-storage fallback.
+- Added three preference tests for first visit/dismissal, revised versions, and
+  unavailable storage. Frontend suite now has six passing tests; production build
+  passes. No runtime/backend/RTL changes were needed. Browser visual verification
+  remains unperformed under the previously saved browser-origin access denial.
+- Updated README and AGENTS.md to require future user-facing features to update
+  the guide and bump its version when appropriate. Existing live servers can serve
+  the frontend update without restarting or modifying any active run.
+- Committing the component/styling, preference tests, and documentation/log updates
+  in focused groups, then publishing to the established GitHub origin.

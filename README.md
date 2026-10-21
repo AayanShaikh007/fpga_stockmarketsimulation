@@ -95,6 +95,13 @@ LED appearance, power cycling, and long-duration operation still need checking.
 
 ## Advanced market research features
 
+On first visit, a centered introduction walks through data sources, execution
+engines, run/kill controls, chart inspection, paper accounting, and timing metrics.
+Use X, Escape, or Skip introduction to dismiss it; reopen it with **Introduction**
+in the top bar. Dismissal is remembered in this browser for the current guide
+version. Future user-facing features must update `frontend/src/onboardingContent.ts`
+and bump `GUIDE_VERSION` when the revised introduction should appear again.
+
 - Stream AAPL, NVDA, or TSLA trade prints from the data-only Alpaca IEX WebSocket.
 - Download paginated historical bars and replay stored, hashed datasets through
   Python or the physical FPGA. A clearly labeled synthetic DEMO works offline.
