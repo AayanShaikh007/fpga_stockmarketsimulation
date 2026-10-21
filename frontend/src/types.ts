@@ -1,4 +1,10 @@
 export type Mode = 'simulation' | 'fpga'
+export type Execution = 'local' | 'alpaca_paper'
+export interface BrokerAccount {
+  environment: 'alpaca_paper'; cash: number; equity: number; buying_power: number
+  symbol: string; position: number; market_value: number; unrealized_pnl: number; timestamp: string
+  last_order: {id?:string;client_order_id?:string;symbol?:string;side?:string;qty?:string;filled_qty?:string;filled_avg_price?:string;status?:string;reason?:string} | null
+}
 export type DataSource = 'generated' | 'live' | 'replay'
 export interface Paper {
   starting_cash: number; cash: number; position: number; average_cost: number
@@ -24,12 +30,14 @@ export interface Telemetry {
   price_usd?: number | null; anchor_usd?: number | null; input_quantity?: number
   control_only?: boolean; normalization?: string; paper?: Paper; performance?: Performance
   risk_checks?: { max_order: number; position_limit: number; position_before: number; position_after: number; order_within_limit: boolean; position_within_limit: boolean }
+  execution?: Execution; broker?: BrokerAccount | null
 }
 export interface Status {
   type: 'status'; state: string; mode: Mode; run_id: string | null
   owner: string | null; speed: number; port: string; error: string | null
   reset_required: boolean; kill_pending: boolean; latest: Telemetry | null
   source?: DataSource; symbol?: string; replay_id?: string; performance?: Performance
+  execution?: Execution; broker?: BrokerAccount | null
 }
 export interface Port { device: string; description: string; hwid: string }
 export const initialStatus: Status = { type: 'status', state: 'idle', mode: 'simulation', run_id: null, owner: null, speed: 5, port: '', error: null, reset_required: false, kill_pending: false, latest: null }
