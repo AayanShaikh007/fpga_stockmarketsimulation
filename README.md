@@ -2,9 +2,12 @@
 
 A learning and portfolio project: deterministic simulated market data, a Python
 reference engine, and a matching Verilog engine with UART packet transport.
-All orders and fills are simulated; this does not connect to an exchange.
+All orders and fills are simulated. Local runs stay on this PC; optional Alpaca PAPER execution submits virtual orders to the paper broker only.
 
 ## React trading dashboard
+
+For persistent Alpaca virtual funds and website-visible simulated fills, see
+[Alpaca PAPER account execution](docs/alpaca-paper.md). Real-money trading is unavailable.
 
 The local dashboard supports **Simulation** (Python reference decisions) and
 **FPGA Live** (physical UART replies checked against Python). Data source is selected independently: generated prices, Alpaca IEX live
@@ -111,8 +114,7 @@ and bump `GUIDE_VERSION` when the revised introduction should appear again.
   timing separately from architectural FPGA cycle estimates.
 
 Read [market setup and research workflow](docs/market-research.md) before using
-real prices. API credentials belong only in ignored `backend/.env`; the backend
-never calls a broker order endpoint. One stock runs at a time because the FPGA
+real prices. API credentials belong only in ignored `backend/.env`; only the explicitly selected Alpaca PAPER mode calls the paper broker order endpoint. One stock runs at a time because the FPGA
 has one position register. USD stock prices are converted into fixed-anchor
 basis-point ticks for the existing engine; both values are visible in inspectors.
 
