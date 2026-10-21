@@ -13,6 +13,8 @@ class PaperPortfolio:
         self.initial = Decimal(str(starting_cash))
         self.cash = self.initial
         self.fee_rate = Decimal(str(fee_bps)) / 10000
+        if not self.initial.is_finite() or self.initial <= 0 or not self.fee_rate.is_finite() or not 0 <= self.fee_rate <= Decimal('.01'):
+            raise ValueError('Invalid starting cash or fee basis points')
         self.position = 0
         self.average_cost = Decimal(0)
         self.realized = Decimal(0)

@@ -1,4 +1,4 @@
-"""Shared wire schema. Simulation never invents physical measurements."""
+"""Base wire schema, extended with market/accounting data by the controller."""
 from datetime import datetime, timezone
 
 

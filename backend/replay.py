@@ -52,8 +52,11 @@ def read_dataset(dataset_id):
     rows = dataset['rows']
     if not 1 <= len(rows) <= 20000:
         raise ValueError('Invalid replay size')
+    if dataset_id != 'demo' and not dataset.get('sha256'):
+        raise ValueError('Replay checksum missing')
     if dataset.get('sha256') and dataset_hash(rows) != dataset['sha256']:
         raise ValueError('Replay checksum mismatch')
+    dataset.setdefault('sha256', dataset_hash(rows))
     last = None
     for row in rows:
         sample = MarketSample(dataset['symbol'], Decimal(str(row['price'])), row['quantity'],

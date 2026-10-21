@@ -1,7 +1,7 @@
 import asyncio
 import time
 from uuid import uuid4
-from contextlib import suppress
+from contextlib import suppress, aclosing
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -128,8 +128,9 @@ class Controller:
 
     async def samples(self):
         if self.config.source == 'live':
-            async for sample in live_samples(self.config.symbol, self.performance.feed):
-                yield sample
+            async with aclosing(live_samples(self.config.symbol, self.performance.feed)) as stream:
+                async for sample in stream:
+                    yield sample
         elif self.config.source == 'replay':
             async for sample in replay_samples(self.dataset):
                 yield sample
