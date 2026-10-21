@@ -479,3 +479,63 @@ from this session.
 - A Windows-default decoding error interrupted an onboarding text update; reran
   with explicit UTF-8. Frontend's six tests pass and production build passes.
   No broker account, active run, hardware packet, or credentials were modified.
+
+## 2026-10-21 - Plan a strategy-authoring and research workspace
+
+- User asked conceptually how to author/test/save strategies with autosave and
+  whether this reflects quantitative research work. No implementation requested.
+- Clarified current fixed-anchor threshold: five normalized ticks is approximately
+  five basis points (0.05%), not five dollars or a drop from the preceding sample.
+- Proposed a shared strategy interface, versioned JSON rule files, Python-first
+  backtests, experiment snapshots, backend file persistence with atomic writes,
+  browser recovery drafts, and separate hardware capability checks.
+- Explained hypothesis-driven testing, unseen validation data, costs, execution
+  timing, and reproducibility using QuantConnect's official research guide.
+- Emphasized the existing FPGA cannot execute arbitrary strategy files; changes
+  need compatible hardware configuration/protocol support or new RTL/bitstreams.
+- No application, account, hardware, or strategy behavior was modified.
+
+## 2026-10-21 - Scope Alpaca-account execution setting
+
+- User requested an optional account-backed execution setting using the balance
+  shown on Alpaca, with orders/balance visible on its website.
+- Inspected current run configuration and data-only client, and checked official
+  Alpaca paper/account/order documentation. Alpaca paper uses virtual funds and
+  persists account state between runs; it is separate from the local $10,000 ledger.
+- Asked the user to confirm paper-only versus actual real-money brokerage because
+  account-backed order submission materially changes the current data-only scope.
+- No broker account queries, orders, account resets, configuration changes, or
+  source implementation were performed pending that scope clarification.
+
+## 2026-10-21 - Implement explicitly confirmed Alpaca PAPER account execution
+
+- User confirmed PAPER only and asked about backend-to-FPGA strategy deployment
+  and the proposed research workflow. Explained parameter-register configuration
+  versus new FPGA algorithms, and clarified the strategy workspace was proposed
+  rather than already implemented. No strategy editor/deployment is claimed.
+- Added a fixed paper-host-only adapter, read-only balance endpoint, live-source
+  and explicit order-consent gating, persistent broker balance/holding display,
+  and separate local $10,000 execution. Existing paper account is never reset.
+- Added cash-sized whole-share bounded DAY limits, up to 20 shares/order and
+  100 held shares, including existing fractional-position room. Shorting/margin
+  sizing, generated/historical broker execution, closed-session order queues,
+  and existing open orders for the selected stock are rejected.
+- Single POSTs have unique run/sequence client IDs and fsynced local intent logs.
+  Partial/pending orders are polled to terminal status; stop/kill/time limit cancels
+  only the run's own order and reconciles outcome. Unknown POST outcomes are looked
+  up by GET, never automatically resent. Unresolved outcomes require Alpaca review.
+- Added portfolio selector, explicit simulated-order authorization, read-balance
+  button, broker-aware portfolio panel, five-second-minimum pacing notice, updated
+  versioned introduction, README, and detailed docs/alpaca-paper.md.
+- Verification: 50 existing backend tests plus nine new broker tests passed;
+  all 15 Python/RTL tests passed without skips; six frontend tests and production
+  build passed. Broker tests cover host restriction, sizing, fractional room,
+  uncertainty/no retry, cancellation, consent/source gating, and controller routing.
+- A read-only actual PAPER account check confirmed access and cash/equity fields.
+  No orders were submitted to the user's account. Broker lifecycle tests are mocked;
+  live provider fill/cancel acceptance and browser visual QA are not claimed.
+- Confirmed no active backend owner before replacing the old interactive backend
+  to serve new code. Local simulator remains the default; no run was started.
+- Committing and publishing in focused adapter/test, controller/API, frontend,
+  documentation, and validation-log groups. No credential values or account data
+  were written to tracked files; local order journals remain ignored.

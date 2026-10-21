@@ -1,5 +1,20 @@
 # Validation — October 20, 2026
 
+## October 21 - Optional Alpaca PAPER execution
+
+- Added paper-host-only execution, live-data/consent gating, persistent account
+  telemetry, bounded long-only sizing, one-submit client IDs, durable local intents,
+  partial/terminal fill reconciliation, and owned-order cancellation on stop/kill.
+- Verification: 59 backend tests passed across the prior 50 plus nine broker tests;
+  15 existing Python/RTL tests passed, zero skips; six frontend tests passed;
+  TypeScript/Vite production build passed.
+- Verified actual paper account read access and cash/equity fields using GET only.
+  No actual paper orders were submitted during implementation. Submission, fill,
+  cancel, timeout, and controller integration tests use mocked HTTP responses.
+- Real-money hosts are unavailable; no RTL/protocol changes. The strategy editor,
+  hypothesis/backtest experiment workspace, and backend-to-FPGA strategy deployment
+  remain future work. Browser visual QA retains its prior verification limit.
+
 ## Market data and paper research milestone
 
 - Existing reference/RTL suite: **15 passed, zero skipped**; no RTL or constraint
